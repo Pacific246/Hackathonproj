@@ -1,0 +1,2095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Urban Resolve - Citizen Engagement System</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
+  
+  <!-- Initialize Firebase -->
+  <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNY6kzSQVoBYB9cv4xBF4DDwDQqNYUl7g",
+      authDomain: "urban-resolve-bbb5a.firebaseapp.com",
+      projectId: "urban-resolve-bbb5a",
+      storageBucket: "urban-resolve-bbb5a.firebasestorage.app",
+      messagingSenderId: "315741496569",
+      appId: "1:315741496569:web:cc997acddb03a947cdee28",
+      measurementId: "G-7TJMHKSE07"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    
+    // Initialize Firebase services
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+    const analytics = firebase.analytics();
+  </script>
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --secondary-color: #1e40af;
+      --background-color: #f3f4f6;
+      --text-color: #1f2937;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --error-color: #ef4444;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      background-color: var(--background-color);
+      color: var(--text-color);
+    }
+
+    header {
+      background-color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 1rem 2rem;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--primary-color);
+      font-size: 1.75rem;
+      font-weight: bold;
+      text-decoration: none;
+      padding: 0.5rem 0;
+    }
+
+    .logo i {
+      font-size: 1.75rem;
+    }
+
+    .logo:hover {
+      opacity: 0.9;
+    }
+
+    nav {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    nav a {
+      color: var(--text-color);
+      text-decoration: none;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.3s;
+    }
+
+    nav a:hover {
+      color: var(--primary-color);
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 6rem auto 2rem;
+      padding: 0 2rem;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 3rem 0;
+      background: linear-gradient(to right, #2563eb11, #1e40af11);
+      border-radius: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .hero h1 {
+      font-size: 2.5rem;
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+    }
+
+    .card {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+
+    .login-container {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .form-group {
+      position: relative;
+      margin-bottom: 1.5rem;
+      width: 100%;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text-color);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color, #e5e7eb);
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .form-group textarea {
+      min-height: 120px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder {
+      color: #9ca3af;
+    }
+
+    .form-group input[type="password"],
+    .form-group input[type="text"] {  /* Apply to both password and text modes */
+      padding-right: 2.5rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(calc(-50% + 12px)); /* Adjust for label height */
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #666;
+      padding: 0.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s;
+      z-index: 2;
+      width: auto; /* Ensure button doesn't affect input width */
+    }
+
+    .password-toggle:hover {
+      color: var(--primary-color);
+    }
+
+    .password-toggle i {
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: var(--secondary-color);
+    }
+
+    .complaint-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      margin-bottom: 1rem;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .status-submitted { background-color: #fef3c7; color: #92400e; }
+    .status-progress { background-color: #dbeafe; color: #1e40af; }
+    .status-resolved { background-color: #dcfce7; color: #166534; }
+
+    .admin-buttons {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .admin-buttons button {
+      flex: 1;
+    }
+
+    .auth-links {
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .auth-links a {
+      color: var(--primary-color);
+      text-decoration: none;
+      margin: 0 1rem;
+    }
+
+    .auth-links a:hover {
+      text-decoration: underline;
+    }
+
+    .file-upload {
+      border: 2px dashed #e5e7eb;
+      padding: 1.5rem;
+      text-align: center;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: border-color 0.3s;
+    }
+
+    .file-upload:hover {
+      border-color: var(--primary-color);
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        display: none;
+      }
+      .form-row {
+        flex-direction: column;
+      }
+    }
+
+    /* Mobile menu styles */
+    .mobile-menu-button {
+      display: none;  /* Hidden by default on desktop */
+      background: none;
+      border: none;
+      padding: 0.75rem;
+      margin-right: 0.5rem;
+      color: var(--text-color);
+      cursor: pointer;
+      font-size: 1.25rem;
+      width: 45px;
+      height: 45px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.5rem;
+    }
+
+    .mobile-menu-button:active {
+      background-color: #f3f4f6;
+    }
+
+    .mobile-menu-button:hover {
+      color: var(--primary-color);
+    }
+
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: white;
+      z-index: 2000;
+      padding: 1rem;
+      animation: slideInRight 0.3s ease-out;
+    }
+
+    .mobile-menu.show {
+      display: block;
+    }
+
+    .mobile-menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 1rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .mobile-menu-close {
+      background: none;
+      border: none;
+      padding: 0.5rem;
+      color: var(--text-color);
+      cursor: pointer;
+      font-size: 1.25rem;
+    }
+
+    .mobile-menu nav {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .mobile-menu nav a {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      transition: background-color 0.2s;
+    }
+
+    .mobile-menu nav a:hover {
+      background-color: #f3f4f6;
+    }
+
+    @keyframes slideInRight {
+      from {
+        transform: translateX(100%);
+      }
+      to {
+        transform: translateX(0);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .mobile-menu-button {
+        display: flex;
+      }
+
+      nav {
+        display: none;
+      }
+
+      .header-content {
+        padding: 0.5rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .logo {
+        font-size: 1.25rem;
+      }
+
+      .form-row {
+        flex-direction: column;
+      }
+
+      .user-dropdown-content {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-radius: 1rem 1rem 0 0;
+        animation: slideInUp 0.3s ease-out;
+      }
+    }
+
+    @keyframes slideInUp {
+      from {
+        transform: translateY(100%);
+      }
+      to {
+        transform: translateY(0);
+      }
+    }
+
+    .notification {
+      position: fixed;
+      top: 5rem;
+      right: 1rem;
+      padding: 1rem 1.5rem;
+      border-radius: 0.5rem;
+      background: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      animation: slideIn 0.3s ease-out;
+      max-width: 24rem;
+    }
+
+    .notification.success {
+      border-left: 4px solid var(--success-color);
+    }
+
+    .notification.error {
+      border-left: 4px solid var(--error-color);
+    }
+
+    .notification.warning {
+      border-left: 4px solid var(--warning-color);
+    }
+
+    .notification i {
+      font-size: 1.25rem;
+    }
+
+    .notification.success i {
+      color: var(--success-color);
+    }
+
+    .notification.error i {
+      color: var(--error-color);
+    }
+
+    .notification.warning i {
+      color: var(--warning-color);
+    }
+
+    .notification-content {
+      flex: 1;
+    }
+
+    .notification h4 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .notification p {
+      margin: 0.25rem 0 0 0;
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
+
+    .notification.hiding {
+      animation: slideOut 0.3s ease-in forwards;
+    }
+
+    /* User dropdown menu styles */
+    .user-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .user-dropdown-content {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 100%;
+      background-color: white;
+      min-width: 180px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-radius: 0.5rem;
+      padding: 0.5rem 0;
+      z-index: 1000;
+    }
+
+    .user-dropdown-content.show {
+      display: block;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .user-dropdown-content a {
+      color: var(--text-color);
+      padding: 0.75rem 1rem;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background-color 0.2s;
+    }
+
+    .user-dropdown-content a:hover {
+      background-color: #f3f4f6;
+      color: var(--primary-color);
+    }
+
+    .user-dropdown-content .divider {
+      height: 1px;
+      background-color: #e5e7eb;
+      margin: 0.5rem 0;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Add admin dashboard styles */
+    .admin-dashboard {
+      display: none;
+      padding: 2rem;
+    }
+
+    .admin-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .stat-card i {
+      font-size: 2rem;
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-card h3 {
+      margin: 0.5rem 0;
+      color: var(--text-color);
+    }
+
+    .stat-card p {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+
+    .admin-filters {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .admin-filters select {
+      min-width: 200px;
+    }
+
+    .complaints-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    .complaints-table th,
+    .complaints-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .complaints-table th {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .complaints-table tr:hover {
+      background: #f8fafc;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .action-buttons button {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+
+    .file-upload {
+      margin-bottom: 1rem;
+    }
+
+    .file-upload label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background-color: #f3f4f6;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .file-upload label:hover {
+      background-color: #e5e7eb;
+    }
+
+    .file-upload input[type="file"] {
+      display: none;
+    }
+
+    .file-info {
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+
+    .file-preview {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .file-preview img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 0.5rem;
+    }
+
+    .file-preview .file-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      background: #f3f4f6;
+      border-radius: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <a href="/" class="logo">
+        <i class="fas fa-city"></i>
+        Urban Resolve
+      </a>
+      <nav>
+        <a href="#" onclick="showSection('home')"><i class="fas fa-home"></i> Home</a>
+        <a href="#" onclick="showSection('submit')"><i class="fas fa-plus-circle"></i> Submit Issue</a>
+        <a href="#" onclick="showSection('status')"><i class="fas fa-tasks"></i> Check Status</a>
+        <a href="#" onclick="showSection('suggestions')"><i class="fas fa-lightbulb"></i> Suggestions</a>
+        <a href="#" id="loginNav" onclick="showSection('login')"><i class="fas fa-user"></i> Login</a>
+      </nav>
+      <button class="mobile-menu-button" onclick="toggleMobileMenu()">
+        <i class="fas fa-bars fa-lg"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <div class="mobile-menu-header">
+      <div class="logo">
+        <i class="fas fa-city"></i>
+        Urban Resolve
+      </div>
+      <button class="mobile-menu-close" onclick="toggleMobileMenu()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <nav>
+      <a href="#" onclick="showSectionMobile('home')"><i class="fas fa-home"></i> Home</a>
+      <a href="#" onclick="showSectionMobile('submit')"><i class="fas fa-plus-circle"></i> Submit Issue</a>
+      <a href="#" onclick="showSectionMobile('status')"><i class="fas fa-tasks"></i> Check Status</a>
+      <a href="#" onclick="showSectionMobile('suggestions')"><i class="fas fa-lightbulb"></i> Suggestions</a>
+      <a href="#" id="loginNavMobile" onclick="showSectionMobile('login')"><i class="fas fa-user"></i> Login</a>
+    </nav>
+  </div>
+
+  <main>
+    <div id="home">
+      <div class="hero">
+        <h1><i class="fas fa-city"></i> Welcome to Urban Resolve</h1>
+        <p>Your voice matters! Report issues and help improve our community together.</p>
+      </div>
+      <div class="card">
+        <h2><i class="fas fa-info-circle"></i> About Us</h2>
+        <p>Urban Resolve is your trusted community engagement platform, empowering citizens to report concerns, share feedback, and collaborate with local authorities for better public services and community wellbeing. We're here to ensure your voice drives meaningful change. Together, we build stronger and better communities.</p>
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+          <div style="flex: 1; text-align: center;">
+            <i class="fas fa-clock fa-2x" style="color: var(--primary-color)"></i>
+            <h3>Quick Response</h3>
+            <p>Get updates on your complaints within 24-48 hours</p>
+          </div>
+          <div style="flex: 1; text-align: center;">
+            <i class="fas fa-chart-line fa-2x" style="color: var(--primary-color)"></i>
+            <h3>Track Progress</h3>
+            <p>Monitor the status of your complaints in real-time</p>
+          </div>
+          <div style="flex: 1; text-align: center;">
+            <i class="fas fa-hands-helping fa-2x" style="color: var(--primary-color)"></i>
+            <h3>Community Impact</h3>
+            <p>Join others in making our community better</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="login" style="display:none;">
+      <div class="login-container card">
+        <h2><i class="fas fa-user"></i> User Login</h2>
+        <div class="form-group">
+          <label for="loginEmail">Email Address</label>
+          <input type="email" id="loginEmail" placeholder="Enter your email" />
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="Enter your password" />
+          <button type="button" class="password-toggle" onclick="togglePassword('loginPassword')">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+        <button onclick="loginUser()">Login</button>
+        <div class="auth-links">
+          <p style="margin: 1rem 0;">Don't have an account? <a href="#" onclick="showUserSignup()">Sign up</a></p>
+          <a href="#" onclick="showSection('forgot-password')">Forgot Password?</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="signup" style="display:none;">
+      <div class="login-container card">
+        <h2 id="signupTitle"><i class="fas fa-user-plus"></i> Create Account</h2>
+        <div id="adminFields" style="display: none;">
+          <div class="form-group">
+            <label>Department</label>
+            <select id="adminDepartment" required>
+              <option value="">Select Department</option>
+              <option value="water">Water Department</option>
+              <option value="electricity">Electricity Department</option>
+              <option value="roads">Roads & Transportation</option>
+              <option value="waste">Waste Management</option>
+              <option value="sanitation">Sanitation Department</option>
+              <option value="healthcare">Healthcare Department</option>
+              <option value="education">Education Department</option>
+              <option value="safety">Public Safety Department</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Position</label>
+            <input type="text" id="adminPosition" placeholder="Enter your position" />
+          </div>
+          <div class="form-group">
+            <label>Employee ID</label>
+            <input type="text" id="adminEmployeeId" placeholder="Enter your employee ID" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="signupFirstName">First Name</label>
+            <input type="text" id="signupFirstName" required />
+          </div>
+          <div class="form-group">
+            <label for="signupLastName">Last Name</label>
+            <input type="text" id="signupLastName" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="signupEmail">Email Address</label>
+          <input type="email" id="signupEmail" required />
+        </div>
+        <div class="form-group">
+          <label for="signupPhone">Phone Number</label>
+          <input type="tel" id="signupPhone" required />
+        </div>
+        <div class="form-group">
+          <label for="signupPassword">Password</label>
+          <input type="password" id="signupPassword" required onkeyup="validatePassword()" />
+          <small id="passwordHint" style="color: #666; display: none;">Password must be at least 6 characters long</small>
+        </div>
+        <div class="form-group">
+          <label for="signupConfirmPassword">Confirm Password</label>
+          <input type="password" id="signupConfirmPassword" required onkeyup="validatePassword()" />
+          <small id="passwordMatch" style="display: none;"></small>
+        </div>
+        <button onclick="signupUser()">Create Account</button>
+        <div class="auth-links">
+          <a href="#" id="backToLogin" onclick="showSection('login')">Already have an account? Login</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="forgot-password" style="display:none;">
+      <div class="login-container card">
+        <h2><i class="fas fa-key"></i> Reset Password</h2>
+        <p>Enter your email address and we'll send you instructions to reset your password.</p>
+        <div class="form-group">
+          <label for="resetEmail">Email Address</label>
+          <input type="email" id="resetEmail" placeholder="Enter your email" />
+        </div>
+        <button onclick="resetPassword()">Send Reset Link</button>
+        <div class="auth-links">
+          <a href="#" onclick="showSection('login')">Back to Login</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-login" style="display:none;">
+      <div class="login-container card">
+        <h2><i class="fas fa-lock"></i> Admin Portal</h2>
+        <div class="form-group">
+          <label for="adminEmail">Admin Email</label>
+          <input type="email" id="adminEmail" placeholder="Enter admin email" />
+        </div>
+        <div class="form-group">
+          <label for="adminPassword">Password</label>
+          <input type="password" id="adminPassword" placeholder="Enter admin password" />
+          <button type="button" class="password-toggle" onclick="togglePassword('adminPassword')">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+        <button onclick="loginAdmin()">Login</button>
+        <div class="auth-links">
+          <p style="margin: 1rem 0;">Don't have an account? <a href="#" onclick="showAdminSignup()">Sign up as Administrator</a></p>
+          <a href="#" onclick="showSection('forgot-password')">Forgot Password?</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="form-section" style="display:none;">
+      <div class="card">
+        <h2><i class="fas fa-edit"></i> Submit Complaint / Feedback</h2>
+      <form id="complaintForm" onsubmit="submitComplaint(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="name">Full Name</label>
+              <input type="text" id="name" required />
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone Number</label>
+              <input type="tel" id="phone" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="category">Category</label>
+              <select id="category" required>
+                <option value="">Select a category</option>
+                <option value="water"><i class="fas fa-water"></i> Water Supply</option>
+                <option value="electricity"><i class="fas fa-bolt"></i> Electricity</option>
+                <option value="roads"><i class="fas fa-road"></i> Roads & Transportation</option>
+                <option value="waste"><i class="fas fa-trash"></i> Waste Management</option>
+                <option value="sanitation"><i class="fas fa-broom"></i> Sanitation</option>
+                <option value="healthcare"><i class="fas fa-hospital"></i> Healthcare</option>
+                <option value="education"><i class="fas fa-school"></i> Education</option>
+                <option value="safety"><i class="fas fa-shield-alt"></i> Public Safety</option>
+                <option value="other"><i class="fas fa-question-circle"></i> Other</option>
+        </select>
+            </div>
+            <div class="form-group">
+              <label for="location">Location</label>
+              <input type="text" id="location" placeholder="Enter address or area" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" rows="4" placeholder="Please provide detailed information about the issue..." required></textarea>
+          </div>
+          <div class="form-group file-upload">
+            <label for="fileInput">
+              <i class="fas fa-cloud-upload-alt"></i> Upload Files
+              <span class="file-info">(Photos and documents)</span>
+            </label>
+            <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx">
+            <div class="file-preview"></div>
+          </div>
+          <button type="submit"><i class="fas fa-paper-plane"></i> Submit Complaint</button>
+      </form>
+      </div>
+    </div>
+
+    <div id="complaint-list" style="display:none;">
+      <div class="card">
+        <h2><i class="fas fa-clipboard-list"></i> Complaint Status Dashboard</h2>
+        <p class="subtitle" style="color: #666; margin-bottom: 2rem;">Track and monitor the status of your submitted complaints</p>
+        
+        <div class="status-summary" style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+          <div style="flex: 1; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; text-align: center;">
+            <i class="fas fa-paper-plane fa-lg" style="color: var(--primary-color);"></i>
+            <h4>Submitted</h4>
+            <p id="submitted-count">0</p>
+          </div>
+          <div style="flex: 1; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; text-align: center;">
+            <i class="fas fa-clock fa-lg" style="color: var(--warning-color);"></i>
+            <h4>In Progress</h4>
+            <p id="progress-count">0</p>
+          </div>
+          <div style="flex: 1; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; text-align: center;">
+            <i class="fas fa-check-circle fa-lg" style="color: var(--success-color);"></i>
+            <h4>Resolved</h4>
+            <p id="resolved-count">0</p>
+          </div>
+        </div>
+
+        <h3 style="margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb;">
+          <i class="fas fa-list"></i> Your Complaints
+        </h3>
+        
+        <div id="no-complaints-message" style="display: none;">
+          <div style="text-align: center; padding: 2rem; background: #f8fafc; border-radius: 0.5rem;">
+            <i class="fas fa-inbox fa-3x" style="color: var(--primary-color); margin-bottom: 1rem;"></i>
+            <h3 style="color: #374151; margin-bottom: 0.5rem;">No Complaints Yet</h3>
+            <p style="color: #6b7280; margin-bottom: 1.5rem;">You haven't submitted any complaints yet. When you do, they will appear here with their current status.</p>
+            <button onclick="showSection('submit')" style="margin-top: 1rem;">
+              <i class="fas fa-plus-circle"></i> Submit New Complaint
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="suggestions" style="display:none;">
+      <div class="card">
+        <h2><i class="fas fa-lightbulb"></i> Community Suggestions</h2>
+        <p>Share your ideas to improve our community! Your suggestions help make our city better.</p>
+        <form id="suggestionForm">
+          <div class="form-group">
+            <label for="suggestionTitle">Title</label>
+            <input type="text" id="suggestionTitle" placeholder="Brief title for your suggestion" required />
+          </div>
+          <div class="form-group">
+            <label for="suggestionCategory">Category</label>
+            <select id="suggestionCategory" required>
+              <option value="">Select a category</option>
+              <option value="infrastructure">Infrastructure</option>
+              <option value="environment">Environment</option>
+              <option value="community">Community Services</option>
+              <option value="safety">Public Safety</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="suggestionDescription">Description</label>
+            <textarea id="suggestionDescription" rows="4" placeholder="Describe your suggestion in detail..." required></textarea>
+          </div>
+          <button type="submit"><i class="fas fa-paper-plane"></i> Submit Suggestion</button>
+        </form>
+      </div>
+      <div id="suggestions-list" class="card">
+        <h3>Recent Suggestions</h3>
+        <!-- Suggestions will be displayed here -->
+      </div>
+    </div>
+
+    <div id="admin-dashboard" class="admin-dashboard">
+      <h2><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h2>
+      
+      <div class="admin-stats">
+        <div class="stat-card">
+          <i class="fas fa-inbox"></i>
+          <h3>New Complaints</h3>
+          <p id="new-complaints-count">0</p>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-clock"></i>
+          <h3>In Progress</h3>
+          <p id="in-progress-count">0</p>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-check-circle"></i>
+          <h3>Resolved</h3>
+          <p id="resolved-complaints-count">0</p>
+        </div>
+        <div class="stat-card">
+          <i class="fas fa-chart-line"></i>
+          <h3>Response Rate</h3>
+          <p id="response-rate">0%</p>
+        </div>
+      </div>
+
+      <div class="admin-filters">
+        <select id="department-filter" onchange="filterComplaints()">
+          <option value="">All Departments</option>
+          <option value="water">Water Department</option>
+          <option value="electricity">Electricity Department</option>
+          <option value="roads">Roads & Transportation</option>
+          <option value="waste">Waste Management</option>
+          <option value="sanitation">Sanitation</option>
+          <option value="healthcare">Healthcare</option>
+          <option value="education">Education</option>
+          <option value="safety">Public Safety</option>
+        </select>
+        <select id="status-filter" onchange="filterComplaints()">
+          <option value="">All Status</option>
+          <option value="Submitted">New</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Resolved">Resolved</option>
+        </select>
+        <input type="date" id="date-filter" onchange="filterComplaints()">
+      </div>
+
+      <div class="card">
+        <table class="complaints-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="complaints-table-body">
+            <!-- Complaints will be populated here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // Remove Socket.IO connection code and use Firebase listeners instead
+    function setupRealtimeListeners() {
+      // Listen for complaint updates
+      db.collection('complaints').onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          const complaint = { id: change.doc.id, ...change.doc.data() };
+          
+          if (change.type === 'added') {
+            if (adminMode) {
+              showNotification('info', 'New Complaint', `A new complaint has been submitted by ${complaint.name}`);
+            }
+          } else if (change.type === 'modified') {
+            showNotification('info', 'Complaint Updated', `Complaint status has been updated to ${complaint.status}`);
+          }
+          
+          if (document.getElementById('complaint-list').style.display === 'block') {
+            renderComplaints();
+          }
+          if (document.getElementById('admin-dashboard').style.display === 'block') {
+            renderComplaintsTable();
+            updateAdminStats();
+          }
+        });
+      });
+
+      // Listen for suggestion updates
+      db.collection('suggestions').onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added' || change.type === 'modified') {
+            if (document.getElementById('suggestions').style.display === 'block') {
+              renderSuggestions();
+            }
+          }
+        });
+      });
+    }
+
+    // Password Toggle Function
+    function togglePassword(inputId) {
+      const input = document.getElementById(inputId);
+      const icon = event.currentTarget.querySelector('i');
+      
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    }
+
+    // Update submitComplaint function to use Firestore
+    async function submitComplaint(e) {
+      e.preventDefault();
+      
+      if (!currentUserEmail) {
+        showNotification('warning', 'Login Required', 'Please login to submit a complaint');
+        showSection('login');
+        return;
+      }
+
+      try {
+        const complaintData = {
+          name: document.getElementById("name").value,
+          phone: document.getElementById("phone").value,
+          email: currentUserEmail,
+          category: document.getElementById("category").value,
+          location: document.getElementById("location").value,
+          description: document.getElementById("description").value,
+          status: "Submitted",
+          date: new Date().toISOString(),
+          userId: auth.currentUser.uid,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          attachments: []
+        };
+
+        // Handle file uploads
+        const fileInput = document.getElementById('fileInput');
+        const files = fileInput.files;
+
+        if (files.length > 0) {
+          const uploadPromises = Array.from(files).map(async (file) => {
+            const fileRef = storage.ref().child(`complaints/${auth.currentUser.uid}/${Date.now()}_${file.name}`);
+            await fileRef.put(file);
+            const downloadURL = await fileRef.getDownloadURL();
+            return {
+              name: file.name,
+              url: downloadURL,
+              type: file.type,
+              size: file.size
+            };
+          });
+
+          complaintData.attachments = await Promise.all(uploadPromises);
+        }
+
+        // Add complaint to Firestore
+        const docRef = await db.collection('complaints').add(complaintData);
+        
+        // Reset form and update UI
+        form.reset();
+        showSection('status');
+        showNotification('success', 'Complaint Submitted', 'Your complaint has been successfully submitted. You can track its status in the dashboard.');
+      } catch (error) {
+        console.error('Error submitting complaint:', error);
+        showNotification('error', 'Submission Failed', error.message);
+      }
+    }
+
+    // Update renderComplaints function to use Firestore
+    async function renderComplaints() {
+      if (!document.getElementById("complaint-list")) {
+        return;
+      }
+      
+      const container = document.getElementById("complaint-list");
+      
+      // Reset the container while preserving the header structure
+      container.querySelector('.card').innerHTML = `
+        <h2><i class="fas fa-clipboard-list"></i> Complaint Status Dashboard</h2>
+        <p class="subtitle" style="color: #666; margin-bottom: 2rem;">
+          ${adminMode 
+            ? `Managing complaints for ${currentUserDepartment === 'all' 
+                ? 'all departments' 
+                : 'the ' + currentUserDepartment + ' department'}`
+            : 'Track and monitor the status of your submitted complaints'}
+        </p>
+        
+        <div class="status-summary" style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+          <div style="flex: 1; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; text-align: center;">
+            <i class="fas fa-paper-plane fa-lg" style="color: var(--primary-color);"></i>
+            <h4>Submitted</h4>
+            <p id="submitted-count">0</p>
+          </div>
+          <div style="flex: 1; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; text-align: center;">
+            <i class="fas fa-clock fa-lg" style="color: var(--warning-color);"></i>
+            <h4>In Progress</h4>
+            <p id="progress-count">0</p>
+          </div>
+          <div style="flex: 1; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; text-align: center;">
+            <i class="fas fa-check-circle fa-lg" style="color: var(--success-color);"></i>
+            <h4>Resolved</h4>
+            <p id="resolved-count">0</p>
+          </div>
+        </div>
+
+        <h3 style="margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb;">
+          <i class="fas fa-list"></i> ${adminMode ? 'Department Complaints' : 'Your Complaints'}
+        </h3>
+      `;
+
+      try {
+        let query = db.collection('complaints');
+        
+        if (adminMode) {
+          if (currentUserDepartment !== 'all') {
+            query = query.where('category', '==', currentUserDepartment);
+          }
+        } else {
+          query = query.where('userId', '==', auth.currentUser.uid);
+        }
+        
+        // Get complaints
+        const snapshot = await query.orderBy('createdAt', 'desc').get();
+        
+        if (snapshot.empty) {
+          const noComplaints = document.createElement('div');
+          noComplaints.innerHTML = `
+            <div style="text-align: center; padding: 2rem; background: #f8fafc; border-radius: 0.5rem;">
+              <i class="fas fa-inbox fa-3x" style="color: var(--primary-color); margin-bottom: 1rem;"></i>
+              <h3 style="color: #374151; margin-bottom: 0.5rem;">No Complaints Yet</h3>
+              <p style="color: #6b7280; margin-bottom: 1.5rem;">
+                ${adminMode 
+                  ? `There are no complaints assigned to ${currentUserDepartment === 'all' 
+                      ? 'any department' 
+                      : 'the ' + currentUserDepartment + ' department'} yet.`
+                  : "You haven't submitted any complaints yet. When you do, they will appear here with their current status."}
+              </p>
+              ${!adminMode ? `
+                <button onclick="showSection('submit')" style="margin-top: 1rem;">
+                  <i class="fas fa-plus-circle"></i> Submit New Complaint
+                </button>
+              ` : ''}
+            </div>
+          `;
+          container.querySelector('.card').appendChild(noComplaints);
+          return;
+        }
+
+        // Update status counts
+        const counts = {
+          'Submitted': 0,
+          'In Progress': 0,
+          'Resolved': 0
+        };
+
+        snapshot.forEach((doc) => {
+          const complaint = { id: doc.id, ...doc.data() };
+          counts[complaint.status]++;
+
+          const card = document.createElement("div");
+          card.className = "complaint-card";
+          const statusClass = getStatusBadgeClass(complaint.status);
+          
+          let attachmentsHtml = '';
+          if (complaint.attachments && complaint.attachments.length > 0) {
+            attachmentsHtml = `
+              <div class="attachments" style="margin-top: 1rem;">
+                <strong><i class="fas fa-paperclip"></i> Attachments:</strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                  ${complaint.attachments.map(attachment => {
+                    if (attachment.type.startsWith('image/')) {
+                      return `
+                        <a href="${attachment.url}" target="_blank" style="text-decoration: none;">
+                          <img src="${attachment.url}" alt="${attachment.name}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 0.5rem;">
+                        </a>
+                      `;
+                    } else {
+                      return `
+                        <a href="${attachment.url}" target="_blank" class="file-link" style="text-decoration: none; padding: 0.5rem; background: #f3f4f6; border-radius: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                          <i class="fas fa-file"></i> ${attachment.name}
+                        </a>
+                      `;
+                    }
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }
+          
+          card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+              <div>
+                <strong><i class="fas fa-tag"></i> Category:</strong> ${complaint.category}<br>
+                <strong><i class="fas fa-user"></i> Name:</strong> ${complaint.name}<br>
+                <strong><i class="fas fa-phone"></i> Phone:</strong> ${complaint.phone}<br>
+                <strong><i class="fas fa-envelope"></i> Email:</strong> ${complaint.email}<br>
+                <strong><i class="fas fa-map-marker-alt"></i> Location:</strong> ${complaint.location}<br>
+                <strong><i class="fas fa-calendar"></i> Date:</strong> ${new Date(complaint.date).toLocaleDateString()}<br>
+                <p>${complaint.description}</p>
+                ${attachmentsHtml}
+              </div>
+              <span class="status-badge ${statusClass}">
+                <i class="fas fa-info-circle"></i> ${complaint.status}
+              </span>
+            </div>
+          `;
+
+          if (adminMode) {
+            const btns = document.createElement("div");
+            btns.className = "admin-buttons";
+            btns.innerHTML = `
+              <button onclick="updateStatus('${complaint.id}', 'In Progress')">
+                <i class="fas fa-clock"></i> Mark In Progress
+              </button>
+              <button onclick="updateStatus('${complaint.id}', 'Resolved')">
+                <i class="fas fa-check"></i> Mark Resolved
+              </button>
+            `;
+            card.appendChild(btns);
+          }
+          container.querySelector('.card').appendChild(card);
+        });
+
+        // Update status counts display
+        document.getElementById('submitted-count').textContent = counts['Submitted'];
+        document.getElementById('progress-count').textContent = counts['In Progress'];
+        document.getElementById('resolved-count').textContent = counts['Resolved'];
+      } catch (error) {
+        console.error('Error rendering complaints:', error);
+        showNotification('error', 'Loading Failed', 'Failed to load complaints. Please try again.');
+      }
+    }
+
+    // Update updateStatus function to use Firestore
+    async function updateStatus(id, newStatus) {
+      try {
+        await db.collection('complaints').doc(id).update({
+          status: newStatus,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        if (adminMode) {
+          renderComplaintsTable();
+          updateAdminStats();
+        } else {
+          renderComplaints();
+        }
+        showNotification('success', 'Status Updated', `Complaint status has been updated to ${newStatus}`);
+      } catch (error) {
+        console.error('Error updating status:', error);
+        showNotification('error', 'Update Failed', error.message);
+      }
+    }
+
+    // Update auth state observer to setup listeners
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        try {
+          const userDoc = await db.collection('users').doc(user.uid).get();
+          const userData = userDoc.data();
+          
+          currentUserEmail = user.email;
+          currentUserName = userData.name || user.email;
+          currentUserRole = userData.role;
+          currentUserDepartment = userData.department || '';
+          adminMode = userData.role === 'admin';
+          
+          updateNavigation();
+          setupRealtimeListeners();
+          
+          if (adminMode) {
+            window.location.href = window.location.origin + '/admin.html';
+          }
+        } catch (error) {
+          console.error('Error getting user data:', error);
+          await auth.signOut();
+        }
+      } else {
+        currentUserEmail = '';
+        currentUserName = '';
+        currentUserRole = '';
+        currentUserDepartment = '';
+        adminMode = false;
+        updateNavigation();
+      }
+    });
+
+    function showNotification(type, title, message) {
+      // Remove any existing notification
+      const existingNotification = document.querySelector('.notification');
+      if (existingNotification) {
+        existingNotification.remove();
+      }
+
+      // Create new notification
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      
+      let icon = '';
+      switch(type) {
+        case 'success':
+          icon = 'check-circle';
+          break;
+        case 'error':
+          icon = 'exclamation-circle';
+          break;
+        case 'warning':
+          icon = 'exclamation-triangle';
+          break;
+        default:
+          icon = 'info-circle';
+      }
+
+      notification.innerHTML = `
+        <i class="fas fa-${icon}"></i>
+        <div class="notification-content">
+          <h4>${title}</h4>
+          <p>${message}</p>
+        </div>
+      `;
+
+      document.body.appendChild(notification);
+
+      // Remove notification after 5 seconds
+      setTimeout(() => {
+        notification.classList.add('hiding');
+        setTimeout(() => notification.remove(), 300);
+      }, 5000);
+    }
+
+    function validatePassword() {
+      const password = document.getElementById("signupPassword").value;
+      const confirmPassword = document.getElementById("signupConfirmPassword").value;
+      const passwordHint = document.getElementById("passwordHint");
+      const passwordMatch = document.getElementById("passwordMatch");
+      
+      // Show password length requirement
+      if (password) {
+        passwordHint.style.display = 'block';
+        if (password.length < 6) {
+          passwordHint.style.color = '#ef4444';
+        } else {
+          passwordHint.style.color = '#10b981';
+        }
+      } else {
+        passwordHint.style.display = 'none';
+      }
+      
+      // Show password match status
+      if (password && confirmPassword) {
+        passwordMatch.style.display = 'block';
+        if (password === confirmPassword) {
+          passwordMatch.style.color = '#10b981';
+          passwordMatch.textContent = 'Passwords match';
+        } else {
+          passwordMatch.style.color = '#ef4444';
+          passwordMatch.textContent = 'Passwords do not match';
+        }
+      } else {
+        passwordMatch.style.display = 'none';
+      }
+    }
+
+    const form = document.getElementById("complaintForm");
+    const suggestionForm = document.getElementById("suggestionForm");
+
+    function updateNavigation() {
+      const loginNav = document.getElementById('loginNav');
+      const loginNavMobile = document.getElementById('loginNavMobile');
+      
+      if (currentUserEmail) {
+        // Update desktop nav
+        loginNav.className = 'user-dropdown';
+        loginNav.innerHTML = `
+          <a href="#" onclick="toggleUserDropdown(event)">
+            <i class="fas fa-user"></i> ${currentUserName || currentUserEmail}
+          </a>
+          <div class="user-dropdown-content" id="userDropdown">
+            <div style="padding: 0.75rem 1rem;">
+              <div style="font-weight: 500;">${currentUserName || currentUserEmail}</div>
+              <div style="font-size: 0.875rem; color: #666;">${currentUserRole}</div>
+            </div>
+            <div class="divider"></div>
+            ${currentUserRole === 'admin' ? 
+              `<a href="#" onclick="showSection('status')">
+                <i class="fas fa-clipboard-list"></i> Dashboard
+              </a>` : ''
+            }
+            <a href="#" onclick="switchAccount(event)">
+              <i class="fas fa-exchange-alt"></i> Switch Account
+            </a>
+            <div class="divider"></div>
+            <a href="#" onclick="logout(event)">
+              <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+          </div>
+        `;
+
+        // Update mobile nav
+        loginNavMobile.innerHTML = `<i class="fas fa-user"></i> ${currentUserName || currentUserEmail}`;
+        loginNavMobile.onclick = () => {
+          toggleMobileMenu();
+          toggleUserDropdown(event);
+        };
+      } else {
+        // Reset to default login state
+        loginNav.className = '';
+        loginNav.innerHTML = '<i class="fas fa-user"></i> Login';
+        loginNav.onclick = () => showSection('login');
+
+        loginNavMobile.innerHTML = '<i class="fas fa-user"></i> Login';
+        loginNavMobile.onclick = () => showSectionMobile('login');
+      }
+    }
+
+    function toggleUserDropdown(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const dropdown = document.getElementById('userDropdown');
+      dropdown.classList.toggle('show');
+
+      // Close dropdown when clicking outside
+      document.onclick = function(event) {
+        if (!event.target.closest('.user-dropdown')) {
+          dropdown.classList.remove('show');
+        }
+      };
+    }
+
+    function switchAccount(e) {
+      e.preventDefault();
+      currentUserEmail = '';
+      currentUserName = '';
+      currentUserRole = '';
+      currentUserDepartment = '';
+      adminMode = false;
+      updateNavigation();
+      showSection('login');
+      showNotification('info', 'Switch Account', 'Please login with different credentials.');
+    }
+
+    function logout(e) {
+      if (e) {
+        e.preventDefault();
+      }
+      if (currentUserEmail) {
+        socket.emit('leave_room', currentUserEmail);
+      }
+      if (adminMode) {
+        socket.emit('leave_room', 'admin');
+      }
+      currentUserEmail = '';
+      currentUserName = '';
+      currentUserRole = '';
+      currentUserDepartment = '';
+      adminMode = false;
+      updateNavigation();
+      showSection('home');
+      showNotification('success', 'Logged Out', 'You have been successfully logged out.');
+    }
+
+    function toggleAdminFields() {
+      const accountType = document.getElementById('accountType').value;
+      const adminFields = document.getElementById('adminFields');
+      adminFields.style.display = accountType === 'admin' ? 'block' : 'none';
+    }
+
+    function showUserSignup() {
+      document.getElementById('adminFields').style.display = 'none';
+      document.getElementById('signupTitle').innerHTML = '<i class="fas fa-user-plus"></i> Create Citizen Account';
+      document.getElementById('backToLogin').onclick = () => showSection('login');
+      showSection('signup');
+    }
+
+    function showAdminSignup() {
+      document.getElementById('adminFields').style.display = 'block';
+      document.getElementById('signupTitle').innerHTML = '<i class="fas fa-user-shield"></i> Create Administrator Account';
+      document.getElementById('backToLogin').onclick = () => showSection('admin-login');
+      showSection('signup');
+    }
+
+    async function signupUser() {
+      const firstName = document.getElementById("signupFirstName").value;
+      const lastName = document.getElementById("signupLastName").value;
+      const email = document.getElementById("signupEmail").value;
+      const phone = document.getElementById("signupPhone").value;
+      const password = document.getElementById("signupPassword").value;
+      const confirmPassword = document.getElementById("signupConfirmPassword").value;
+
+      // Password validation
+      if (!password || !confirmPassword) {
+        showNotification('error', 'Missing Password', "Please fill in both password fields.");
+        return;
+      }
+
+      if (password.length < 6) {
+        showNotification('error', 'Invalid Password', "Password must be at least 6 characters long.");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        showNotification('error', 'Password Mismatch', "Passwords don't match. Please try again.");
+        document.getElementById("signupPassword").value = '';
+        document.getElementById("signupConfirmPassword").value = '';
+        return;
+      }
+
+      try {
+        // Create user with email and password
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+
+        // Update user profile
+        await user.updateProfile({
+          displayName: `${firstName} ${lastName}`
+        });
+
+        // Store additional user data in Firestore
+        await db.collection('users').doc(user.uid).set({
+          name: `${firstName} ${lastName}`,
+          email: email,
+          phone: phone,
+          role: 'user',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        currentUserEmail = email;
+        currentUserName = `${firstName} ${lastName}`;
+        currentUserRole = 'user';
+        adminMode = false;
+
+        updateNavigation();
+        showSection('home');
+        showNotification('success', 'Welcome!', `Welcome to Urban Resolve, ${firstName}! Your account has been created successfully.`);
+      } catch (error) {
+        console.error('Registration error:', error);
+        showNotification('error', 'Registration Failed', error.message);
+      }
+    }
+
+    async function resetPassword() {
+      const email = document.getElementById("resetEmail").value;
+      
+      try {
+        await auth.sendPasswordResetEmail(email);
+        showNotification('success', 'Reset Link Sent', 'If an account exists with this email, you will receive password reset instructions shortly.');
+        showSection('login');
+      } catch (error) {
+        console.error('Password reset error:', error);
+        showNotification('error', 'Reset Failed', error.message);
+      }
+    }
+
+    async function loginUser() {
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
+
+      try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        // Get additional user data from Firestore
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        const userData = userDoc.data();
+
+        if (userData.role === 'admin') {
+          showNotification('error', 'Access Denied', 'This login is for citizens only. Please use the Admin Portal to login as an administrator.');
+          await auth.signOut();
+          return;
+        }
+
+        currentUserEmail = user.email;
+        currentUserName = userData.name || user.email;
+        currentUserRole = userData.role;
+        adminMode = false;
+
+        updateNavigation();
+        showSection('home');
+        showNotification('success', 'Welcome Back!', `Welcome back, ${currentUserName}! You've been successfully logged in.`);
+      } catch (error) {
+        console.error('Login error:', error);
+        showNotification('error', 'Login Failed', error.message);
+      }
+    }
+
+    async function loginAdmin() {
+      const email = document.getElementById("adminEmail").value;
+      const password = document.getElementById("adminPassword").value;
+
+      try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        // Get additional user data from Firestore
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        const userData = userDoc.data();
+
+        if (userData.role !== 'admin') {
+          showNotification('error', 'Access Denied', 'This portal is for administrators only. Please use the regular login for citizen access.');
+          await auth.signOut();
+          return;
+        }
+
+        adminMode = true;
+        currentUserEmail = email;
+        currentUserName = userData.name || user.email;
+        currentUserRole = 'admin';
+        currentUserDepartment = userData.department;
+        
+        updateNavigation();
+        window.location.href = window.location.origin + '/admin.html';
+        showNotification('success', 'Admin Access', `Welcome to the admin dashboard. You now have access to ${userData.department === 'all' ? 'all departments' : userData.department + ' department'}.`);
+      } catch (error) {
+        console.error('Login error:', error);
+        showNotification('error', 'Login Failed', error.message);
+      }
+    }
+
+    function showAdminDashboard() {
+      // Hide all other sections
+      const sections = ['home', 'form-section', 'complaint-list', 'login', 'admin-login', 'signup', 'forgot-password', 'suggestions'];
+      sections.forEach(section => {
+        document.getElementById(section).style.display = 'none';
+      });
+      
+      // Show admin dashboard
+      document.getElementById('admin-dashboard').style.display = 'block';
+      updateAdminStats();
+      renderComplaintsTable();
+    }
+
+    function updateAdminStats() {
+      const filteredComplaints = currentUserDepartment === 'all' 
+        ? complaints 
+        : complaints.filter(c => c.category === currentUserDepartment);
+
+      const newCount = filteredComplaints.filter(c => c.status === 'Submitted').length;
+      const inProgressCount = filteredComplaints.filter(c => c.status === 'In Progress').length;
+      const resolvedCount = filteredComplaints.filter(c => c.status === 'Resolved').length;
+      const responseRate = filteredComplaints.length > 0 
+        ? Math.round((resolvedCount / filteredComplaints.length) * 100) 
+        : 0;
+
+      document.getElementById('new-complaints-count').textContent = newCount;
+      document.getElementById('in-progress-count').textContent = inProgressCount;
+      document.getElementById('resolved-complaints-count').textContent = resolvedCount;
+      document.getElementById('response-rate').textContent = `${responseRate}%`;
+    }
+
+    function renderComplaintsTable() {
+      const tbody = document.getElementById('complaints-table-body');
+      tbody.innerHTML = '';
+
+      const departmentFilter = document.getElementById('department-filter').value;
+      const statusFilter = document.getElementById('status-filter').value;
+      const dateFilter = document.getElementById('date-filter').value;
+
+      let filteredComplaints = currentUserDepartment === 'all' 
+        ? [...complaints] 
+        : complaints.filter(c => c.category === currentUserDepartment);
+
+      if (departmentFilter) {
+        filteredComplaints = filteredComplaints.filter(c => c.category === departmentFilter);
+      }
+      if (statusFilter) {
+        filteredComplaints = filteredComplaints.filter(c => c.status === statusFilter);
+      }
+      if (dateFilter) {
+        filteredComplaints = filteredComplaints.filter(c => c.date === dateFilter);
+      }
+
+      filteredComplaints.forEach(complaint => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>#${complaint.id}</td>
+          <td>${complaint.date}</td>
+          <td>${complaint.category}</td>
+          <td>${complaint.description.substring(0, 50)}...</td>
+          <td>${complaint.location}</td>
+          <td><span class="status-badge ${getStatusBadgeClass(complaint.status)}">${complaint.status}</span></td>
+          <td class="action-buttons">
+            <button onclick="updateStatus(${complaint.id}, 'In Progress')" 
+                    ${complaint.status === 'In Progress' ? 'disabled' : ''}>
+              <i class="fas fa-clock"></i> In Progress
+            </button>
+            <button onclick="updateStatus(${complaint.id}, 'Resolved')"
+                    ${complaint.status === 'Resolved' ? 'disabled' : ''}>
+              <i class="fas fa-check"></i> Resolve
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterComplaints() {
+      renderComplaintsTable();
+      updateAdminStats();
+    }
+
+    function getStatusBadgeClass(status) {
+      switch(status.toLowerCase()) {
+        case 'submitted': return 'status-submitted';
+        case 'in progress': return 'status-progress';
+        case 'resolved': return 'status-resolved';
+        default: return 'status-submitted';
+      }
+    }
+
+    function toggleMobileMenu() {
+      const mobileMenu = document.getElementById('mobileMenu');
+      mobileMenu.classList.toggle('show');
+      
+      // Prevent body scrolling when menu is open
+      document.body.style.overflow = mobileMenu.classList.contains('show') ? 'hidden' : '';
+    }
+
+    function showSectionMobile(id) {
+      toggleMobileMenu(); // Close the mobile menu
+      showSection(id); // Show the selected section
+    }
+
+    // Add this near the top of your JavaScript
+    // Check if accessing admin portal
+    window.addEventListener('load', function() {
+      const adminRoute = '/admin';
+      if (window.location.pathname === adminRoute) {
+        showSection('admin-login');
+      }
+    });
+
+    // Update the showSection function to handle admin routes
+    function showSection(id) {
+      const sections = ['home', 'form-section', 'complaint-list', 'login', 'admin-login', 'signup', 'forgot-password', 'suggestions', 'admin-dashboard'];
+      sections.forEach(section => {
+        document.getElementById(section).style.display = 'none';
+      });
+      
+      if (id === 'submit') {
+        document.getElementById('form-section').style.display = 'block';
+      } else if (id === 'status') {
+        document.getElementById('complaint-list').style.display = 'block';
+        if (!currentUserEmail) {
+          // Show login prompt if not logged in
+          document.getElementById('complaint-list').style.display = 'block';
+          document.querySelector('#complaint-list .card').innerHTML = `
+            <h2><i class="fas fa-clipboard-list"></i> Complaint Status Dashboard</h2>
+            <p class="subtitle" style="color: #666; margin-bottom: 2rem;">Track and monitor the status of your submitted complaints</p>
+            
+            <div style="text-align: center; padding: 3rem; background: #f8fafc; border-radius: 0.5rem; margin-top: 2rem;">
+              <i class="fas fa-user-lock fa-3x" style="color: var(--primary-color); margin-bottom: 1rem;"></i>
+              <h3 style="color: #374151; margin-bottom: 0.5rem;">Please Login to View Your Complaints</h3>
+              <p style="color: #6b7280; margin-bottom: 1.5rem;">You need to be logged in to view and track your complaints.</p>
+              <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button onclick="showSection('login')" style="background-color: var(--primary-color);">
+                  <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <button onclick="showSection('signup')" style="background-color: var(--secondary-color);">
+                  <i class="fas fa-user-plus"></i> Create Account
+                </button>
+              </div>
+            </div>
+          `;
+        } else {
+          renderComplaints();
+        }
+      } else {
+        document.getElementById(id).style.display = 'block';
+      }
+
+      if (id === 'suggestions') {
+        renderSuggestions();
+      }
+
+      // Update URL for admin routes
+      if (id === 'admin-login' || id === 'admin-dashboard') {
+        window.history.pushState({}, '', '/admin');
+      }
+    }
+
+    // Add a direct admin access function
+    function accessAdminPortal() {
+      window.location.href = window.location.origin + '/admin';
+    }
+
+    // Update suggestion form submission to use Firestore
+    suggestionForm.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      
+      if (!currentUserEmail) {
+        showNotification('warning', 'Login Required', 'Please login to submit a suggestion');
+        showSection('login');
+        return;
+      }
+
+      try {
+        const suggestionData = {
+          title: document.getElementById("suggestionTitle").value,
+          category: document.getElementById("suggestionCategory").value,
+          description: document.getElementById("suggestionDescription").value,
+          userId: auth.currentUser.uid,
+          name: currentUserName || currentUserEmail,
+          date: new Date().toISOString(),
+          votes: 0,
+          voters: [],
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await db.collection('suggestions').add(suggestionData);
+        suggestionForm.reset();
+        renderSuggestions();
+        showNotification('success', 'Suggestion Submitted', 'Your suggestion has been successfully submitted. Thank you for contributing to our community!');
+      } catch (error) {
+        console.error('Error submitting suggestion:', error);
+        showNotification('error', 'Submission Failed', error.message);
+      }
+    });
+
+    // Update renderSuggestions function to use Firestore
+    async function renderSuggestions() {
+      const container = document.getElementById("suggestions-list");
+      container.innerHTML = '<h3>Recent Suggestions</h3>';
+      
+      try {
+        const snapshot = await db.collection('suggestions')
+          .orderBy('votes', 'desc')
+          .orderBy('createdAt', 'desc')
+          .get();
+        
+        if (snapshot.empty) {
+          container.innerHTML += '<p>No suggestions yet. Be the first to suggest an improvement!</p>';
+          return;
+        }
+
+        snapshot.forEach((doc) => {
+          const suggestion = { id: doc.id, ...doc.data() };
+          const card = document.createElement("div");
+          card.className = "complaint-card";
+          card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+              <div>
+                <h4>${suggestion.title}</h4>
+                <strong><i class="fas fa-tag"></i> Category:</strong> ${suggestion.category}<br>
+                <strong><i class="fas fa-user"></i> Suggested by:</strong> ${suggestion.name}<br>
+                <strong><i class="fas fa-calendar"></i> Date:</strong> ${new Date(suggestion.date).toLocaleDateString()}<br>
+                <p>${suggestion.description}</p>
+              </div>
+              <div>
+                <button onclick="voteSuggestion('${suggestion.id}')" class="vote-button" ${suggestion.voters.includes(auth.currentUser?.uid) ? 'disabled' : ''}>
+                  <i class="fas fa-thumbs-up"></i> ${suggestion.votes} Votes
+                </button>
+              </div>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      } catch (error) {
+        console.error('Error loading suggestions:', error);
+        showNotification('error', 'Loading Failed', 'Failed to load suggestions. Please try again.');
+      }
+    }
+
+    // Update voteSuggestion function to use Firestore
+    async function voteSuggestion(id) {
+      if (!currentUserEmail) {
+        showNotification('warning', 'Login Required', 'Please login to vote for suggestions');
+        showSection('login');
+        return;
+      }
+
+      try {
+        const suggestionRef = db.collection('suggestions').doc(id);
+        const doc = await suggestionRef.get();
+        
+        if (!doc.exists) {
+          showNotification('error', 'Not Found', 'Suggestion not found');
+          return;
+        }
+
+        const suggestion = doc.data();
+        if (suggestion.voters.includes(auth.currentUser.uid)) {
+          showNotification('warning', 'Already Voted', 'You have already voted for this suggestion');
+          return;
+        }
+
+        await suggestionRef.update({
+          votes: firebase.firestore.FieldValue.increment(1),
+          voters: firebase.firestore.FieldValue.arrayUnion(auth.currentUser.uid)
+        });
+
+        renderSuggestions();
+        showNotification('success', 'Vote Recorded', 'Your vote has been recorded. Thank you for participating!');
+      } catch (error) {
+        console.error('Error voting for suggestion:', error);
+        showNotification('error', 'Vote Failed', error.message);
+      }
+    }
+
+    // Initialize the app
+    updateNavigation();
+    showSection('home');
+
+    // Add file upload preview functionality
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const files = e.target.files;
+      const fileUpload = document.querySelector('.file-upload');
+      
+      if (files.length > 0) {
+        let previewHtml = '<div style="margin-top: 1rem;">';
+        
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              const img = document.createElement('img');
+              img.src = e.target.result;
+              img.style.width = '100px';
+              img.style.height = '100px';
+              img.style.objectFit = 'cover';
+              img.style.borderRadius = '0.5rem';
+              img.style.marginRight = '0.5rem';
+              document.querySelector('.file-preview').appendChild(img);
+            };
+            reader.readAsDataURL(file);
+          } else {
+            previewHtml += `
+              <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: #f3f4f6; border-radius: 0.5rem; margin-right: 0.5rem;">
+                <i class="fas fa-file"></i> ${file.name}
+              </div>
+            `;
+          }
+        }
+        
+        previewHtml += '</div>';
+        
+        if (!fileUpload.querySelector('.file-preview')) {
+          const previewDiv = document.createElement('div');
+          previewDiv.className = 'file-preview';
+          fileUpload.appendChild(previewDiv);
+        }
+        
+        fileUpload.querySelector('.file-preview').innerHTML = previewHtml;
+      } else {
+        const previewDiv = fileUpload.querySelector('.file-preview');
+        if (previewDiv) {
+          previewDiv.remove();
+        }
+      }
+    });
+  </script>
+</body>
+</html>

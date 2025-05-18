@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Urban Resolve</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --secondary-color: #1e40af;
+      --background-color: #f3f4f6;
+      --text-color: #1f2937;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --error-color: #ef4444;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      background-color: var(--background-color);
+      color: var(--text-color);
+    }
+
+    .admin-login {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .login-card {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .admin-dashboard {
+      display: none;
+    }
+
+    .header {
+      background: white;
+      padding: 1rem 2rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      height: 64px;
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 100%;
+    }
+
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 64px;
+      bottom: 0;
+      width: 250px;
+      background: white;
+      padding: 1.5rem 0;
+      box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+      overflow-y: auto;
+      z-index: 99;
+    }
+
+    .main-content {
+      margin-left: 250px;
+      margin-top: 64px;
+      padding: 2rem;
+      min-height: calc(100vh - 64px);
+      background-color: var(--background-color);
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1.5rem;
+      color: var(--text-color);
+      text-decoration: none;
+      transition: all 0.3s ease;
+      border-left: 4px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: var(--background-color);
+      color: var(--primary-color);
+      border-left-color: var(--primary-color);
+    }
+
+    .nav-item.active {
+      background: var(--primary-color);
+      color: white;
+      border-left-color: var(--secondary-color);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .stat-card h3 {
+      color: var(--text-color);
+      font-size: 1rem;
+      margin: 0 0 1rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .stat-card p {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--primary-color);
+      margin: 0;
+    }
+
+    .chart-container {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 1.5rem;
+    }
+
+    .chart-container h3 {
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      color: var(--text-color);
+      font-size: 1.1rem;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 1rem;
+      overflow: hidden;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .data-table th {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .filters {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    input, select, button {
+      padding: 0.75rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+    }
+
+    button {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    button:hover {
+      background: var(--secondary-color);
+    }
+
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .status-new { background: #fef3c7; color: #92400e; }
+    .status-progress { background: #dbeafe; color: #1e40af; }
+    .status-resolved { background: #dcfce7; color: #166534; }
+
+    .notification {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: 1rem 1.5rem;
+      border-radius: 0.5rem;
+      background: white;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .session-timer {
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    #sessionTime {
+      font-weight: bold;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+
+      .sidebar.show {
+        transform: translateX(0);
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
+
+      .header-content {
+        padding: 0 1rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Fix the last name textbox container */
+    .form-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .form-row > * {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    /* Add styles for suggestions */
+    .suggestions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .suggestion-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .suggestion-card h3 {
+      margin: 0 0 1rem 0;
+      color: var(--primary-color);
+    }
+
+    .badge {
+      background: var(--primary-color);
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 1rem;
+      font-size: 0.875rem;
+      margin-left: auto;
+    }
+
+    /* Add styles for form cleanup */
+    .form-reset {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .form-success {
+      color: var(--success-color);
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 1.5rem;
+      margin: 2rem 0;
+    }
+
+    .activity-list {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-top: 1.5rem;
+    }
+
+    .activity-item {
+      padding: 1rem;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .activity-item:last-child {
+      border-bottom: none;
+    }
+
+    .activity-icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .activity-icon.new {
+      background-color: var(--primary-color);
+    }
+
+    .activity-icon.update {
+      background-color: var(--warning-color);
+    }
+
+    .activity-icon.resolve {
+      background-color: var(--success-color);
+    }
+
+    .activity-content {
+      flex: 1;
+    }
+
+    .activity-time {
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+
+    .priority-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .priority-badge.high {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+
+    .priority-badge.medium {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+
+    .priority-badge.low {
+      background-color: #e0f2fe;
+      color: #075985;
+    }
+
+    .report-filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .report-preview {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 768px) {
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Admin Login -->
+  <div id="adminLogin" class="admin-login">
+    <div class="login-container">
+      <h2><i class="fas fa-city"></i> Urban Resolve</h2>
+      <h3>Admin Portal</h3>
+      <form id="adminLoginForm" onsubmit="handleAdminLogin(event)">
+        <div class="form-group">
+          <label for="adminEmail">Email</label>
+          <input type="email" id="adminEmail" required>
+        </div>
+        <div class="form-group">
+          <label for="adminPassword">Password</label>
+          <input type="password" id="adminPassword" required>
+          <button type="button" class="password-toggle" onclick="togglePassword('adminPassword')">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+        <button type="submit" style="width: 100%;">
+          <i class="fas fa-sign-in-alt"></i> Login
+        </button>
+        <div class="auth-links">
+          <a href="#" onclick="showForgotPassword()">Forgot Password?</a>
+          <a href="#" onclick="showAdminSignup()">Create Account</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Forgot Password -->
+  <div id="forgotPassword" class="admin-login" style="display: none;">
+    <div class="login-container">
+      <h2><i class="fas fa-key"></i> Reset Password</h2>
+      <h3>Enter your email to receive reset instructions</h3>
+      <form id="forgotPasswordForm" onsubmit="handleForgotPassword(event)">
+        <div class="form-group">
+          <label for="resetEmail">Email Address</label>
+          <input type="email" id="resetEmail" required>
+        </div>
+        <button type="submit" style="width: 100%;">
+          <i class="fas fa-paper-plane"></i> Send Reset Link
+        </button>
+        <div class="auth-links">
+          <a href="#" onclick="showAdminLogin()">Back to Login</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Signup -->
+  <div id="adminSignup" class="admin-login" style="display: none;">
+    <div class="login-container">
+      <h2><i class="fas fa-user-plus"></i> Create Account</h2>
+      <h3>Join Urban Resolve as an administrator</h3>
+      <form id="adminSignupForm" onsubmit="handleAdminSignup(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input type="text" id="firstName" required>
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input type="text" id="lastName" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="signupEmail">Email</label>
+          <input type="email" id="signupEmail" required>
+        </div>
+        <div class="form-group">
+          <label for="signupPassword">Password</label>
+          <input type="password" id="signupPassword" required>
+          <button type="button" class="password-toggle" onclick="togglePassword('signupPassword')">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <input type="password" id="confirmPassword" required>
+          <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword')">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+        <div class="form-group">
+          <label for="signupDepartment">Department</label>
+          <select id="signupDepartment" required>
+            <option value="">Select Department</option>
+            <option value="water">Water Department</option>
+            <option value="electricity">Electricity Department</option>
+            <option value="roads">Roads & Transportation</option>
+            <option value="waste">Waste Management</option>
+            <option value="sanitation">Sanitation</option>
+            <option value="healthcare">Healthcare</option>
+            <option value="education">Education</option>
+            <option value="safety">Public Safety</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="employeeId">Employee ID</label>
+          <input type="text" id="employeeId" required>
+        </div>
+        <button type="submit" style="width: 100%;">
+          <i class="fas fa-user-plus"></i> Create Account
+        </button>
+        <div class="auth-links">
+          <a href="#" onclick="showAdminLogin()">Already have an account? Login</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Dashboard -->
+  <div id="adminDashboard" class="admin-dashboard" style="display: none;">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="header-left">
+          <button id="menuToggle" onclick="toggleSidebar()">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h2><i class="fas fa-city"></i> Urban Resolve</h2>
+        </div>
+        <div class="header-right">
+          <span id="adminName"></span>
+          <button onclick="handleLogout()">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <nav>
+        <a href="#overview" class="nav-item active" onclick="showDashboardSection('overview')">
+          <i class="fas fa-tachometer-alt"></i> Overview
+        </a>
+        <a href="#complaints" class="nav-item" onclick="showDashboardSection('complaints')">
+          <i class="fas fa-clipboard-list"></i> Complaints
+        </a>
+        <a href="#suggestions" class="nav-item" onclick="showDashboardSection('suggestions')">
+          <i class="fas fa-lightbulb"></i> Suggestions
+          <span class="badge" id="suggestionsCount">0</span>
+        </a>
+        <a href="#reports" class="nav-item" onclick="showDashboardSection('reports')">
+          <i class="fas fa-chart-bar"></i> Reports
+        </a>
+        <a href="#settings" class="nav-item" onclick="showDashboardSection('settings')">
+          <i class="fas fa-cog"></i> Settings
+        </a>
+      </nav>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Overview Section -->
+      <section id="overviewSection" class="dashboard-section active">
+        <h2><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h2>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3><i class="fas fa-inbox"></i> New Complaints</h3>
+            <p id="newComplaintsCount">0</p>
+          </div>
+          <div class="stat-card">
+            <h3><i class="fas fa-clock"></i> In Progress</h3>
+            <p id="inProgressCount">0</p>
+          </div>
+          <div class="stat-card">
+            <h3><i class="fas fa-check-circle"></i> Resolved</h3>
+            <p id="resolvedCount">0</p>
+          </div>
+          <div class="stat-card">
+            <h3><i class="fas fa-chart-line"></i> Response Rate</h3>
+            <p id="responseRate">0%</p>
+          </div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="chart-container">
+            <canvas id="complaintStatusChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <canvas id="departmentChart"></canvas>
+          </div>
+        </div>
+
+        <div class="recent-activity">
+          <h3><i class="fas fa-history"></i> Recent Activity</h3>
+          <div id="activityLog" class="activity-list">
+            <!-- Activity items will be added here dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Reports Section -->
+      <section id="reportsSection" class="dashboard-section">
+        <h2><i class="fas fa-file-alt"></i> Reports</h2>
+        
+        <div class="report-filters">
+          <div class="form-group">
+            <label for="reportType">Report Type</label>
+            <select id="reportType">
+              <option value="daily">Daily Report</option>
+              <option value="weekly">Weekly Report</option>
+              <option value="monthly">Monthly Report</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="reportDepartment">Department</label>
+            <select id="reportDepartment">
+              <option value="all">All Departments</option>
+              <option value="water">Water Department</option>
+              <option value="electricity">Electricity Department</option>
+              <option value="roads">Roads & Transportation</option>
+              <option value="waste">Waste Management</option>
+              <option value="sanitation">Sanitation</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="education">Education</option>
+              <option value="safety">Public Safety</option>
+            </select>
+          </div>
+          
+          <button onclick="generateReport()" class="primary-button">
+            <i class="fas fa-download"></i> Generate Report
+          </button>
+        </div>
+
+        <div class="report-preview">
+          <div id="reportContent"></div>
+        </div>
+      </section>
+
+      <!-- Enhanced Complaint Management -->
+      <section id="complaintsSection" class="dashboard-section">
+        <h2><i class="fas fa-clipboard-list"></i> Complaint Management</h2>
+        
+        <div class="complaint-filters">
+          <div class="form-group">
+            <label for="priorityFilter">Priority</label>
+            <select id="priorityFilter" onchange="filterComplaints()">
+              <option value="">All Priorities</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="departmentFilter">Department</label>
+            <select id="departmentFilter" onchange="filterComplaints()">
+              <option value="">All Departments</option>
+              <option value="water">Water</option>
+              <option value="electricity">Electricity</option>
+              <option value="roads">Roads</option>
+              <option value="waste">Waste</option>
+              <option value="sanitation">Sanitation</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="education">Education</option>
+              <option value="safety">Safety</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="statusFilter">Status</label>
+            <select id="statusFilter" onchange="filterComplaints()">
+              <option value="">All Status</option>
+              <option value="Submitted">New</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="dateFilter">Date</label>
+            <input type="date" id="dateFilter" onchange="filterComplaints()">
+          </div>
+        </div>
+
+        <div class="complaints-table-container">
+          <table class="complaints-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Location</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="complaints-table-body">
+              <!-- Complaints will be populated here -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Suggestions Section -->
+      <section id="suggestionsSection" class="dashboard-section">
+        <h2><i class="fas fa-lightbulb"></i> Suggestions</h2>
+        <div class="filters">
+          <select id="suggestionStatusFilter" onchange="filterSuggestions()">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="under_review">Under Review</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <select id="suggestionCategoryFilter" onchange="filterSuggestions()">
+            <option value="">All Categories</option>
+            <option value="improvement">Improvement</option>
+            <option value="feature">Feature</option>
+            <option value="bug">Bug</option>
+            <option value="other">Other</option>
+          </select>
+          <button onclick="refreshSuggestions()">
+            <i class="fas fa-sync"></i> Refresh
+          </button>
+        </div>
+        <div class="suggestions-grid" id="suggestionsGrid"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Session Timer -->
+  <div class="session-timer">
+    <i class="fas fa-clock"></i>
+    Session expires in: <span id="sessionTime">30:00</span>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html> 
