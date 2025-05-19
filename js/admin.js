@@ -87,6 +87,12 @@ function showAdminSignup() {
 
 // Authentication Handlers
 async function handleAdminLogin(event) {
+    if (!window.firebaseServices) {
+        showNotification('error', 'App Error', 'Firebase is not initialized. Please refresh the page.');
+        return;
+    }
+    const auth = window.firebaseServices.auth;
+    const db = window.firebaseServices.db;
     event.preventDefault();
     const email = document.getElementById('adminEmail').value;
     const password = document.getElementById('adminPassword').value;
@@ -147,6 +153,12 @@ async function handleForgotPassword(event) {
 }
 
 async function handleAdminSignup(event) {
+    if (!window.firebaseServices) {
+        showNotification('error', 'App Error', 'Firebase is not initialized. Please refresh the page.');
+        return;
+    }
+    const auth = window.firebaseServices.auth;
+    const db = window.firebaseServices.db;
     event.preventDefault();
     
     try {
@@ -270,6 +282,10 @@ function showDashboardSection(section) {
 
 // Data Sync
 async function syncWithMainSite() {
+    if (!window.firebaseServices) {
+        showNotification('error', 'App Error', 'Firebase is not initialized. Please refresh the page.');
+        return false;
+    }
     try {
         const response = await fetch('/api/complaints', {
             headers: {
@@ -370,6 +386,12 @@ function renderComplaintsTable(complaints = adminData.complaints) {
 }
 
 async function updateComplaintStatus(id, newStatus) {
+    if (!window.firebaseServices) {
+        showNotification('error', 'App Error', 'Firebase is not initialized. Please refresh the page.');
+        return;
+    }
+    const auth = window.firebaseServices.auth;
+    const db = window.firebaseServices.db;
     try {
         const response = await fetch(`/api/complaints/${id}/status`, {
             method: 'PUT',
@@ -561,6 +583,10 @@ function generateReport() {
 async function exportComplaints() {
     const department = localStorage.getItem('adminDepartment');
     
+    if (!window.firebaseServices) {
+        showNotification('error', 'App Error', 'Firebase is not initialized. Please refresh the page.');
+        return;
+    }
     try {
         const response = await fetch(`/api/complaints/export?format=csv&department=${department}`, {
             headers: {
@@ -590,6 +616,10 @@ async function exportComplaints() {
 
 // Suggestions Management
 async function loadSuggestions() {
+    if (!window.firebaseServices) {
+        showNotification('error', 'App Error', 'Firebase is not initialized. Please refresh the page.');
+        return;
+    }
     try {
         const response = await fetch('/api/suggestions', {
             headers: {
@@ -668,6 +698,12 @@ function renderSuggestions(suggestions = adminData.suggestions) {
 }
 
 async function updateSuggestionStatus(id, status) {
+    if (!window.firebaseServices) {
+        showNotification('error', 'App Error', 'Firebase is not initialized. Please refresh the page.');
+        return;
+    }
+    const auth = window.firebaseServices.auth;
+    const db = window.firebaseServices.db;
     try {
         const response = await fetch(`/api/suggestions/${id}/status`, {
             method: 'PUT',

@@ -14,27 +14,53 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
   
+  <!-- Configuration -->
+  <script type="module" src="js/config.js"></script>
+  
   <!-- Initialize Firebase -->
-  <script>
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyDNY6kzSQVoBYB9cv4xBF4DDwDQqNYUl7g",
-      authDomain: "urban-resolve-bbb5a.firebaseapp.com",
-      projectId: "urban-resolve-bbb5a",
-      storageBucket: "urban-resolve-bbb5a.firebasestorage.app",
-      messagingSenderId: "315741496569",
-      appId: "1:315741496569:web:cc997acddb03a947cdee28",
-      measurementId: "G-7TJMHKSE07"
-    };
-
+  <script type="module">
+    import config from './js/config.js';
+    
+    try {
     // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
+      firebase.initializeApp(config.firebase);
     
     // Initialize Firebase services
     const auth = firebase.auth();
     const db = firebase.firestore();
     const storage = firebase.storage();
     const analytics = firebase.analytics();
+      
+      // Enable offline persistence
+      db.enablePersistence()
+        .catch((err) => {
+          if (err.code === 'failed-precondition') {
+            console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+          } else if (err.code === 'unimplemented') {
+            console.warn('The current browser does not support persistence.');
+          }
+        });
+      
+      // Export Firebase services
+      window.firebaseServices = {
+        auth,
+        db,
+        storage,
+        analytics
+      };
+      
+      // Log successful initialization
+      console.log('Firebase initialized successfully');
+    } catch (error) {
+      console.error('Error initializing Firebase:', error);
+      // Show user-friendly error message
+      document.body.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+          <h1>Error Initializing Application</h1>
+          <p>We're sorry, but there was an error initializing the application. Please try refreshing the page or contact support if the problem persists.</p>
+        </div>
+      `;
+    }
   </script>
   <style>
     :root {
@@ -1097,538 +1123,144 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    // Remove Socket.IO connection code and use Firebase listeners instead
-    function setupRealtimeListeners() {
-      // Listen for complaint updates
-      db.collection('complaints').onSnapshot((snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          const complaint = { id: change.doc.id, ...change.doc.data() };
-          
-          if (change.type === 'added') {
-            if (adminMode) {
-              showNotification('info', 'New Complaint', `A new complaint has been submitted by ${complaint.name}`);
-            }
-          } else if (change.type === 'modified') {
-            showNotification('info', 'Complaint Updated', `Complaint status has been updated to ${complaint.status}`);
-          }
-          
-          if (document.getElementById('complaint-list').style.display === 'block') {
-            renderComplaints();
-          }
-          if (document.getElementById('admin-dashboard').style.display === 'block') {
-            renderComplaintsTable();
-            updateAdminStats();
-          }
+    // Global user/session variables
+    let currentUserEmail = '';
+    let currentUserName = '';
+    let currentUserRole = '';
+    let adminMode = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Navigation event handlers
+      const navLinks = document.querySelectorAll('nav a');
+      navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          const section = this.getAttribute('onclick').match(/'([^']+)'/)[1];
+          showSection(section);
         });
       });
 
-      // Listen for suggestion updates
-      db.collection('suggestions').onSnapshot((snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'added' || change.type === 'modified') {
-            if (document.getElementById('suggestions').style.display === 'block') {
-              renderSuggestions();
-            }
-          }
+      // Mobile menu navigation
+      const mobileNavLinks = document.querySelectorAll('#mobileMenu nav a');
+      mobileNavLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          const section = this.getAttribute('onclick').match(/'([^']+)'/)[1];
+          showSection(section);
+          document.getElementById('mobileMenu').classList.remove('show');
         });
       });
-    }
 
-    // Password Toggle Function
-    function togglePassword(inputId) {
-      const input = document.getElementById(inputId);
-      const icon = event.currentTarget.querySelector('i');
-      
-      if (input.type === 'password') {
-        input.type = 'text';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
-      } else {
-        input.type = 'password';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
-      }
-    }
-
-    // Update submitComplaint function to use Firestore
-    async function submitComplaint(e) {
+      // Logo click
+      var logo = document.querySelector('.logo');
+      if (logo) {
+        logo.addEventListener('click', function(e) {
       e.preventDefault();
-      
-      if (!currentUserEmail) {
-        showNotification('warning', 'Login Required', 'Please login to submit a complaint');
-        showSection('login');
-        return;
-      }
-
-      try {
-        const complaintData = {
-          name: document.getElementById("name").value,
-          phone: document.getElementById("phone").value,
-          email: currentUserEmail,
-          category: document.getElementById("category").value,
-          location: document.getElementById("location").value,
-          description: document.getElementById("description").value,
-          status: "Submitted",
-          date: new Date().toISOString(),
-          userId: auth.currentUser.uid,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          attachments: []
-        };
-
-        // Handle file uploads
-        const fileInput = document.getElementById('fileInput');
-        const files = fileInput.files;
-
-        if (files.length > 0) {
-          const uploadPromises = Array.from(files).map(async (file) => {
-            const fileRef = storage.ref().child(`complaints/${auth.currentUser.uid}/${Date.now()}_${file.name}`);
-            await fileRef.put(file);
-            const downloadURL = await fileRef.getDownloadURL();
-            return {
-              name: file.name,
-              url: downloadURL,
-              type: file.type,
-              size: file.size
-            };
-          });
-
-          complaintData.attachments = await Promise.all(uploadPromises);
-        }
-
-        // Add complaint to Firestore
-        const docRef = await db.collection('complaints').add(complaintData);
-        
-        // Reset form and update UI
-        form.reset();
-        showSection('status');
-        showNotification('success', 'Complaint Submitted', 'Your complaint has been successfully submitted. You can track its status in the dashboard.');
-      } catch (error) {
-        console.error('Error submitting complaint:', error);
-        showNotification('error', 'Submission Failed', error.message);
-      }
-    }
-
-    // Update renderComplaints function to use Firestore
-    async function renderComplaints() {
-      if (!document.getElementById("complaint-list")) {
-        return;
-      }
-      
-      const container = document.getElementById("complaint-list");
-      
-      // Reset the container while preserving the header structure
-      container.querySelector('.card').innerHTML = `
-        <h2><i class="fas fa-clipboard-list"></i> Complaint Status Dashboard</h2>
-        <p class="subtitle" style="color: #666; margin-bottom: 2rem;">
-          ${adminMode 
-            ? `Managing complaints for ${currentUserDepartment === 'all' 
-                ? 'all departments' 
-                : 'the ' + currentUserDepartment + ' department'}`
-            : 'Track and monitor the status of your submitted complaints'}
-        </p>
-        
-        <div class="status-summary" style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-          <div style="flex: 1; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; text-align: center;">
-            <i class="fas fa-paper-plane fa-lg" style="color: var(--primary-color);"></i>
-            <h4>Submitted</h4>
-            <p id="submitted-count">0</p>
-          </div>
-          <div style="flex: 1; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; text-align: center;">
-            <i class="fas fa-clock fa-lg" style="color: var(--warning-color);"></i>
-            <h4>In Progress</h4>
-            <p id="progress-count">0</p>
-          </div>
-          <div style="flex: 1; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; text-align: center;">
-            <i class="fas fa-check-circle fa-lg" style="color: var(--success-color);"></i>
-            <h4>Resolved</h4>
-            <p id="resolved-count">0</p>
-          </div>
-        </div>
-
-        <h3 style="margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb;">
-          <i class="fas fa-list"></i> ${adminMode ? 'Department Complaints' : 'Your Complaints'}
-        </h3>
-      `;
-
-      try {
-        let query = db.collection('complaints');
-        
-        if (adminMode) {
-          if (currentUserDepartment !== 'all') {
-            query = query.where('category', '==', currentUserDepartment);
-          }
-        } else {
-          query = query.where('userId', '==', auth.currentUser.uid);
-        }
-        
-        // Get complaints
-        const snapshot = await query.orderBy('createdAt', 'desc').get();
-        
-        if (snapshot.empty) {
-          const noComplaints = document.createElement('div');
-          noComplaints.innerHTML = `
-            <div style="text-align: center; padding: 2rem; background: #f8fafc; border-radius: 0.5rem;">
-              <i class="fas fa-inbox fa-3x" style="color: var(--primary-color); margin-bottom: 1rem;"></i>
-              <h3 style="color: #374151; margin-bottom: 0.5rem;">No Complaints Yet</h3>
-              <p style="color: #6b7280; margin-bottom: 1.5rem;">
-                ${adminMode 
-                  ? `There are no complaints assigned to ${currentUserDepartment === 'all' 
-                      ? 'any department' 
-                      : 'the ' + currentUserDepartment + ' department'} yet.`
-                  : "You haven't submitted any complaints yet. When you do, they will appear here with their current status."}
-              </p>
-              ${!adminMode ? `
-                <button onclick="showSection('submit')" style="margin-top: 1rem;">
-                  <i class="fas fa-plus-circle"></i> Submit New Complaint
-                </button>
-              ` : ''}
-            </div>
-          `;
-          container.querySelector('.card').appendChild(noComplaints);
-          return;
-        }
-
-        // Update status counts
-        const counts = {
-          'Submitted': 0,
-          'In Progress': 0,
-          'Resolved': 0
-        };
-
-        snapshot.forEach((doc) => {
-          const complaint = { id: doc.id, ...doc.data() };
-          counts[complaint.status]++;
-
-          const card = document.createElement("div");
-          card.className = "complaint-card";
-          const statusClass = getStatusBadgeClass(complaint.status);
-          
-          let attachmentsHtml = '';
-          if (complaint.attachments && complaint.attachments.length > 0) {
-            attachmentsHtml = `
-              <div class="attachments" style="margin-top: 1rem;">
-                <strong><i class="fas fa-paperclip"></i> Attachments:</strong>
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
-                  ${complaint.attachments.map(attachment => {
-                    if (attachment.type.startsWith('image/')) {
-                      return `
-                        <a href="${attachment.url}" target="_blank" style="text-decoration: none;">
-                          <img src="${attachment.url}" alt="${attachment.name}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 0.5rem;">
-                        </a>
-                      `;
-                    } else {
-                      return `
-                        <a href="${attachment.url}" target="_blank" class="file-link" style="text-decoration: none; padding: 0.5rem; background: #f3f4f6; border-radius: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                          <i class="fas fa-file"></i> ${attachment.name}
-                        </a>
-                      `;
-                    }
-                  }).join('')}
-                </div>
-              </div>
-            `;
-          }
-          
-          card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: start;">
-              <div>
-                <strong><i class="fas fa-tag"></i> Category:</strong> ${complaint.category}<br>
-                <strong><i class="fas fa-user"></i> Name:</strong> ${complaint.name}<br>
-                <strong><i class="fas fa-phone"></i> Phone:</strong> ${complaint.phone}<br>
-                <strong><i class="fas fa-envelope"></i> Email:</strong> ${complaint.email}<br>
-                <strong><i class="fas fa-map-marker-alt"></i> Location:</strong> ${complaint.location}<br>
-                <strong><i class="fas fa-calendar"></i> Date:</strong> ${new Date(complaint.date).toLocaleDateString()}<br>
-                <p>${complaint.description}</p>
-                ${attachmentsHtml}
-              </div>
-              <span class="status-badge ${statusClass}">
-                <i class="fas fa-info-circle"></i> ${complaint.status}
-              </span>
-            </div>
-          `;
-
-          if (adminMode) {
-            const btns = document.createElement("div");
-            btns.className = "admin-buttons";
-            btns.innerHTML = `
-              <button onclick="updateStatus('${complaint.id}', 'In Progress')">
-                <i class="fas fa-clock"></i> Mark In Progress
-              </button>
-              <button onclick="updateStatus('${complaint.id}', 'Resolved')">
-                <i class="fas fa-check"></i> Mark Resolved
-              </button>
-            `;
-            card.appendChild(btns);
-          }
-          container.querySelector('.card').appendChild(card);
+      showSection('home');
         });
-
-        // Update status counts display
-        document.getElementById('submitted-count').textContent = counts['Submitted'];
-        document.getElementById('progress-count').textContent = counts['In Progress'];
-        document.getElementById('resolved-count').textContent = counts['Resolved'];
-      } catch (error) {
-        console.error('Error rendering complaints:', error);
-        showNotification('error', 'Loading Failed', 'Failed to load complaints. Please try again.');
       }
-    }
 
-    // Update updateStatus function to use Firestore
-    async function updateStatus(id, newStatus) {
-      try {
-        await db.collection('complaints').doc(id).update({
-          status: newStatus,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        if (adminMode) {
-          renderComplaintsTable();
-          updateAdminStats();
-        } else {
-          renderComplaints();
-        }
-        showNotification('success', 'Status Updated', `Complaint status has been updated to ${newStatus}`);
-      } catch (error) {
-        console.error('Error updating status:', error);
-        showNotification('error', 'Update Failed', error.message);
-      }
-    }
-
-    // Update auth state observer to setup listeners
-    auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        try {
-          const userDoc = await db.collection('users').doc(user.uid).get();
-          const userData = userDoc.data();
-          
-          currentUserEmail = user.email;
-          currentUserName = userData.name || user.email;
-          currentUserRole = userData.role;
-          currentUserDepartment = userData.department || '';
-          adminMode = userData.role === 'admin';
-          
-          updateNavigation();
-          setupRealtimeListeners();
-          
-          if (adminMode) {
-            window.location.href = window.location.origin + '/admin.html';
-          }
-        } catch (error) {
-          console.error('Error getting user data:', error);
-          await auth.signOut();
-        }
-      } else {
-        currentUserEmail = '';
-        currentUserName = '';
-        currentUserRole = '';
-        currentUserDepartment = '';
-        adminMode = false;
-        updateNavigation();
-      }
+      // Attach form event handlers
+      var complaintForm = document.getElementById('complaintForm');
+      if (complaintForm) complaintForm.addEventListener('submit', submitComplaint);
+      var suggestionForm = document.getElementById('suggestionForm');
+      if (suggestionForm) suggestionForm.addEventListener('submit', submitSuggestion);
+      var signupBtn = document.querySelector('#signup button');
+      if (signupBtn) signupBtn.addEventListener('click', signupUser);
+      var loginBtn = document.querySelector('#login button');
+      if (loginBtn) loginBtn.addEventListener('click', loginUser);
+      var resetBtn = document.querySelector('#forgot-password button');
+      if (resetBtn) resetBtn.addEventListener('click', resetPassword);
     });
 
-    function showNotification(type, title, message) {
-      // Remove any existing notification
-      const existingNotification = document.querySelector('.notification');
-      if (existingNotification) {
-        existingNotification.remove();
-      }
-
-      // Create new notification
-      const notification = document.createElement('div');
-      notification.className = `notification ${type}`;
-      
-      let icon = '';
-      switch(type) {
-        case 'success':
-          icon = 'check-circle';
-          break;
-        case 'error':
-          icon = 'exclamation-circle';
-          break;
-        case 'warning':
-          icon = 'exclamation-triangle';
-          break;
-        default:
-          icon = 'info-circle';
-      }
-
-      notification.innerHTML = `
-        <i class="fas fa-${icon}"></i>
-        <div class="notification-content">
-          <h4>${title}</h4>
-          <p>${message}</p>
-        </div>
-      `;
-
-      document.body.appendChild(notification);
-
-      // Remove notification after 5 seconds
-      setTimeout(() => {
-        notification.classList.add('hiding');
-        setTimeout(() => notification.remove(), 300);
-      }, 5000);
-    }
-
-    function validatePassword() {
-      const password = document.getElementById("signupPassword").value;
-      const confirmPassword = document.getElementById("signupConfirmPassword").value;
-      const passwordHint = document.getElementById("passwordHint");
-      const passwordMatch = document.getElementById("passwordMatch");
-      
-      // Show password length requirement
-      if (password) {
-        passwordHint.style.display = 'block';
-        if (password.length < 6) {
-          passwordHint.style.color = '#ef4444';
-        } else {
-          passwordHint.style.color = '#10b981';
+    function showSection(id) {
+      // Hide all sections first
+      const sections = ['home', 'submit', 'status', 'login', 'signup', 'suggestions', 'complaint-list'];
+      sections.forEach(section => {
+        const element = document.getElementById(section);
+        if (element) {
+          element.style.display = 'none';
         }
-      } else {
-        passwordHint.style.display = 'none';
-      }
-      
-      // Show password match status
-      if (password && confirmPassword) {
-        passwordMatch.style.display = 'block';
-        if (password === confirmPassword) {
-          passwordMatch.style.color = '#10b981';
-          passwordMatch.textContent = 'Passwords match';
-        } else {
-          passwordMatch.style.color = '#ef4444';
-          passwordMatch.textContent = 'Passwords do not match';
-        }
-      } else {
-        passwordMatch.style.display = 'none';
-      }
-    }
+      });
 
-    const form = document.getElementById("complaintForm");
-    const suggestionForm = document.getElementById("suggestionForm");
-
-    function updateNavigation() {
-      const loginNav = document.getElementById('loginNav');
-      const loginNavMobile = document.getElementById('loginNavMobile');
-      
-      if (currentUserEmail) {
-        // Update desktop nav
-        loginNav.className = 'user-dropdown';
-        loginNav.innerHTML = `
-          <a href="#" onclick="toggleUserDropdown(event)">
-            <i class="fas fa-user"></i> ${currentUserName || currentUserEmail}
-          </a>
-          <div class="user-dropdown-content" id="userDropdown">
-            <div style="padding: 0.75rem 1rem;">
-              <div style="font-weight: 500;">${currentUserName || currentUserEmail}</div>
-              <div style="font-size: 0.875rem; color: #666;">${currentUserRole}</div>
+      // Special handling for submit and status sections
+      if (id === 'submit') {
+        if (!currentUserEmail) {
+          // Show login prompt if not logged in
+          document.getElementById('form-section').innerHTML = `
+            <div class="card">
+              <h2><i class="fas fa-user-lock"></i> Login Required</h2>
+              <p>Please login to submit a complaint.</p>
+              <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
+                <button onclick="showSection('login')" style="background-color: var(--primary-color);">
+                  <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <button onclick="showSection('signup')" style="background-color: var(--secondary-color);">
+                  <i class="fas fa-user-plus"></i> Create Account
+                </button>
+              </div>
             </div>
-            <div class="divider"></div>
-            ${currentUserRole === 'admin' ? 
-              `<a href="#" onclick="showSection('status')">
-                <i class="fas fa-clipboard-list"></i> Dashboard
-              </a>` : ''
-            }
-            <a href="#" onclick="switchAccount(event)">
-              <i class="fas fa-exchange-alt"></i> Switch Account
-            </a>
-            <div class="divider"></div>
-            <a href="#" onclick="logout(event)">
-              <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
-          </div>
-        `;
-
-        // Update mobile nav
-        loginNavMobile.innerHTML = `<i class="fas fa-user"></i> ${currentUserName || currentUserEmail}`;
-        loginNavMobile.onclick = () => {
-          toggleMobileMenu();
-          toggleUserDropdown(event);
-        };
-      } else {
-        // Reset to default login state
-        loginNav.className = '';
-        loginNav.innerHTML = '<i class="fas fa-user"></i> Login';
-        loginNav.onclick = () => showSection('login');
-
-        loginNavMobile.innerHTML = '<i class="fas fa-user"></i> Login';
-        loginNavMobile.onclick = () => showSectionMobile('login');
-      }
-    }
-
-    function toggleUserDropdown(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      const dropdown = document.getElementById('userDropdown');
-      dropdown.classList.toggle('show');
-
-      // Close dropdown when clicking outside
-      document.onclick = function(event) {
-        if (!event.target.closest('.user-dropdown')) {
-          dropdown.classList.remove('show');
+          `;
+          document.getElementById('form-section').style.display = 'block';
+        } else {
+          document.getElementById('form-section').style.display = 'block';
         }
-      };
-    }
-
-    function switchAccount(e) {
-      e.preventDefault();
-      currentUserEmail = '';
-      currentUserName = '';
-      currentUserRole = '';
-      currentUserDepartment = '';
-      adminMode = false;
-      updateNavigation();
-      showSection('login');
-      showNotification('info', 'Switch Account', 'Please login with different credentials.');
-    }
-
-    function logout(e) {
-      if (e) {
-        e.preventDefault();
+      } else if (id === 'status') {
+        if (!currentUserEmail) {
+          // Show login prompt if not logged in
+          document.getElementById('complaint-list').innerHTML = `
+            <div class="card">
+              <h2><i class="fas fa-user-lock"></i> Login Required</h2>
+              <p>Please login to view your complaints.</p>
+              <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
+                <button onclick="showSection('login')" style="background-color: var(--primary-color);">
+                  <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <button onclick="showSection('signup')" style="background-color: var(--secondary-color);">
+                  <i class="fas fa-user-plus"></i> Create Account
+                </button>
+              </div>
+            </div>
+          `;
+          document.getElementById('complaint-list').style.display = 'block';
+        } else {
+          document.getElementById('complaint-list').style.display = 'block';
+          renderComplaints();
+        }
+      } else {
+        const section = document.getElementById(id);
+        if (section) {
+          section.style.display = 'block';
+        }
       }
-      if (currentUserEmail) {
-        socket.emit('leave_room', currentUserEmail);
+
+      // Update URL for admin routes
+      if (id === 'admin-login' || id === 'admin-dashboard') {
+        window.history.pushState({}, '', '/admin');
       }
-      if (adminMode) {
-        socket.emit('leave_room', 'admin');
-      }
-      currentUserEmail = '';
-      currentUserName = '';
-      currentUserRole = '';
-      currentUserDepartment = '';
-      adminMode = false;
-      updateNavigation();
-      showSection('home');
-      showNotification('success', 'Logged Out', 'You have been successfully logged out.');
     }
 
-    function toggleAdminFields() {
-      const accountType = document.getElementById('accountType').value;
-      const adminFields = document.getElementById('adminFields');
-      adminFields.style.display = accountType === 'admin' ? 'block' : 'none';
-    }
-
-    function showUserSignup() {
-      document.getElementById('adminFields').style.display = 'none';
-      document.getElementById('signupTitle').innerHTML = '<i class="fas fa-user-plus"></i> Create Citizen Account';
-      document.getElementById('backToLogin').onclick = () => showSection('login');
-      showSection('signup');
-    }
-
-    function showAdminSignup() {
-      document.getElementById('adminFields').style.display = 'block';
-      document.getElementById('signupTitle').innerHTML = '<i class="fas fa-user-shield"></i> Create Administrator Account';
-      document.getElementById('backToLogin').onclick = () => showSection('admin-login');
-      showSection('signup');
-    }
+    // Ensure showSection and all navigation functions are globally available
+    window.showSection = showSection;
+    window.showUserSignup = showUserSignup;
+    window.showAdminSignup = showAdminSignup;
+    window.toggleMobileMenu = toggleMobileMenu;
 
     async function signupUser() {
+      if (!window.firebaseServices) {
+        showNotification('error', 'App Error', 'Firebase is not initialized. Please refresh the page.');
+        return;
+      }
+      const auth = window.firebaseServices.auth;
+      const db = window.firebaseServices.db;
+
       const firstName = document.getElementById("signupFirstName").value;
       const lastName = document.getElementById("signupLastName").value;
       const email = document.getElementById("signupEmail").value;
-      const phone = document.getElementById("signupPhone").value;
       const password = document.getElementById("signupPassword").value;
       const confirmPassword = document.getElementById("signupConfirmPassword").value;
-
+      const phone = document.getElementById("signupPhone").value;
+      
       // Password validation
       if (!password || !confirmPassword) {
         showNotification('error', 'Missing Password', "Please fill in both password fields.");
@@ -1642,6 +1274,7 @@
 
       if (password !== confirmPassword) {
         showNotification('error', 'Password Mismatch', "Passwords don't match. Please try again.");
+        // Clear password fields
         document.getElementById("signupPassword").value = '';
         document.getElementById("signupConfirmPassword").value = '';
         return;
@@ -1666,430 +1299,21 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
+        // Set current user
         currentUserEmail = email;
         currentUserName = `${firstName} ${lastName}`;
         currentUserRole = 'user';
         adminMode = false;
 
+        // Update navigation and show success message
         updateNavigation();
         showSection('home');
-        showNotification('success', 'Welcome!', `Welcome to Urban Resolve, ${firstName}! Your account has been created successfully.`);
+        showNotification('success', 'Account Created', 'Your account has been created successfully!');
       } catch (error) {
         console.error('Registration error:', error);
         showNotification('error', 'Registration Failed', error.message);
       }
     }
-
-    async function resetPassword() {
-      const email = document.getElementById("resetEmail").value;
-      
-      try {
-        await auth.sendPasswordResetEmail(email);
-        showNotification('success', 'Reset Link Sent', 'If an account exists with this email, you will receive password reset instructions shortly.');
-        showSection('login');
-      } catch (error) {
-        console.error('Password reset error:', error);
-        showNotification('error', 'Reset Failed', error.message);
-      }
-    }
-
-    async function loginUser() {
-      const email = document.getElementById("loginEmail").value;
-      const password = document.getElementById("loginPassword").value;
-
-      try {
-        const userCredential = await auth.signInWithEmailAndPassword(email, password);
-        const user = userCredential.user;
-        
-        // Get additional user data from Firestore
-        const userDoc = await db.collection('users').doc(user.uid).get();
-        const userData = userDoc.data();
-
-        if (userData.role === 'admin') {
-          showNotification('error', 'Access Denied', 'This login is for citizens only. Please use the Admin Portal to login as an administrator.');
-          await auth.signOut();
-          return;
-        }
-
-        currentUserEmail = user.email;
-        currentUserName = userData.name || user.email;
-        currentUserRole = userData.role;
-        adminMode = false;
-
-        updateNavigation();
-        showSection('home');
-        showNotification('success', 'Welcome Back!', `Welcome back, ${currentUserName}! You've been successfully logged in.`);
-      } catch (error) {
-        console.error('Login error:', error);
-        showNotification('error', 'Login Failed', error.message);
-      }
-    }
-
-    async function loginAdmin() {
-      const email = document.getElementById("adminEmail").value;
-      const password = document.getElementById("adminPassword").value;
-
-      try {
-        const userCredential = await auth.signInWithEmailAndPassword(email, password);
-        const user = userCredential.user;
-        
-        // Get additional user data from Firestore
-        const userDoc = await db.collection('users').doc(user.uid).get();
-        const userData = userDoc.data();
-
-        if (userData.role !== 'admin') {
-          showNotification('error', 'Access Denied', 'This portal is for administrators only. Please use the regular login for citizen access.');
-          await auth.signOut();
-          return;
-        }
-
-        adminMode = true;
-        currentUserEmail = email;
-        currentUserName = userData.name || user.email;
-        currentUserRole = 'admin';
-        currentUserDepartment = userData.department;
-        
-        updateNavigation();
-        window.location.href = window.location.origin + '/admin.html';
-        showNotification('success', 'Admin Access', `Welcome to the admin dashboard. You now have access to ${userData.department === 'all' ? 'all departments' : userData.department + ' department'}.`);
-      } catch (error) {
-        console.error('Login error:', error);
-        showNotification('error', 'Login Failed', error.message);
-      }
-    }
-
-    function showAdminDashboard() {
-      // Hide all other sections
-      const sections = ['home', 'form-section', 'complaint-list', 'login', 'admin-login', 'signup', 'forgot-password', 'suggestions'];
-      sections.forEach(section => {
-        document.getElementById(section).style.display = 'none';
-      });
-      
-      // Show admin dashboard
-      document.getElementById('admin-dashboard').style.display = 'block';
-      updateAdminStats();
-      renderComplaintsTable();
-    }
-
-    function updateAdminStats() {
-      const filteredComplaints = currentUserDepartment === 'all' 
-        ? complaints 
-        : complaints.filter(c => c.category === currentUserDepartment);
-
-      const newCount = filteredComplaints.filter(c => c.status === 'Submitted').length;
-      const inProgressCount = filteredComplaints.filter(c => c.status === 'In Progress').length;
-      const resolvedCount = filteredComplaints.filter(c => c.status === 'Resolved').length;
-      const responseRate = filteredComplaints.length > 0 
-        ? Math.round((resolvedCount / filteredComplaints.length) * 100) 
-        : 0;
-
-      document.getElementById('new-complaints-count').textContent = newCount;
-      document.getElementById('in-progress-count').textContent = inProgressCount;
-      document.getElementById('resolved-complaints-count').textContent = resolvedCount;
-      document.getElementById('response-rate').textContent = `${responseRate}%`;
-    }
-
-    function renderComplaintsTable() {
-      const tbody = document.getElementById('complaints-table-body');
-      tbody.innerHTML = '';
-
-      const departmentFilter = document.getElementById('department-filter').value;
-      const statusFilter = document.getElementById('status-filter').value;
-      const dateFilter = document.getElementById('date-filter').value;
-
-      let filteredComplaints = currentUserDepartment === 'all' 
-        ? [...complaints] 
-        : complaints.filter(c => c.category === currentUserDepartment);
-
-      if (departmentFilter) {
-        filteredComplaints = filteredComplaints.filter(c => c.category === departmentFilter);
-      }
-      if (statusFilter) {
-        filteredComplaints = filteredComplaints.filter(c => c.status === statusFilter);
-      }
-      if (dateFilter) {
-        filteredComplaints = filteredComplaints.filter(c => c.date === dateFilter);
-      }
-
-      filteredComplaints.forEach(complaint => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>#${complaint.id}</td>
-          <td>${complaint.date}</td>
-          <td>${complaint.category}</td>
-          <td>${complaint.description.substring(0, 50)}...</td>
-          <td>${complaint.location}</td>
-          <td><span class="status-badge ${getStatusBadgeClass(complaint.status)}">${complaint.status}</span></td>
-          <td class="action-buttons">
-            <button onclick="updateStatus(${complaint.id}, 'In Progress')" 
-                    ${complaint.status === 'In Progress' ? 'disabled' : ''}>
-              <i class="fas fa-clock"></i> In Progress
-            </button>
-            <button onclick="updateStatus(${complaint.id}, 'Resolved')"
-                    ${complaint.status === 'Resolved' ? 'disabled' : ''}>
-              <i class="fas fa-check"></i> Resolve
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function filterComplaints() {
-      renderComplaintsTable();
-      updateAdminStats();
-    }
-
-    function getStatusBadgeClass(status) {
-      switch(status.toLowerCase()) {
-        case 'submitted': return 'status-submitted';
-        case 'in progress': return 'status-progress';
-        case 'resolved': return 'status-resolved';
-        default: return 'status-submitted';
-      }
-    }
-
-    function toggleMobileMenu() {
-      const mobileMenu = document.getElementById('mobileMenu');
-      mobileMenu.classList.toggle('show');
-      
-      // Prevent body scrolling when menu is open
-      document.body.style.overflow = mobileMenu.classList.contains('show') ? 'hidden' : '';
-    }
-
-    function showSectionMobile(id) {
-      toggleMobileMenu(); // Close the mobile menu
-      showSection(id); // Show the selected section
-    }
-
-    // Add this near the top of your JavaScript
-    // Check if accessing admin portal
-    window.addEventListener('load', function() {
-      const adminRoute = '/admin';
-      if (window.location.pathname === adminRoute) {
-        showSection('admin-login');
-      }
-    });
-
-    // Update the showSection function to handle admin routes
-    function showSection(id) {
-      const sections = ['home', 'form-section', 'complaint-list', 'login', 'admin-login', 'signup', 'forgot-password', 'suggestions', 'admin-dashboard'];
-      sections.forEach(section => {
-        document.getElementById(section).style.display = 'none';
-      });
-      
-      if (id === 'submit') {
-        document.getElementById('form-section').style.display = 'block';
-      } else if (id === 'status') {
-        document.getElementById('complaint-list').style.display = 'block';
-        if (!currentUserEmail) {
-          // Show login prompt if not logged in
-          document.getElementById('complaint-list').style.display = 'block';
-          document.querySelector('#complaint-list .card').innerHTML = `
-            <h2><i class="fas fa-clipboard-list"></i> Complaint Status Dashboard</h2>
-            <p class="subtitle" style="color: #666; margin-bottom: 2rem;">Track and monitor the status of your submitted complaints</p>
-            
-            <div style="text-align: center; padding: 3rem; background: #f8fafc; border-radius: 0.5rem; margin-top: 2rem;">
-              <i class="fas fa-user-lock fa-3x" style="color: var(--primary-color); margin-bottom: 1rem;"></i>
-              <h3 style="color: #374151; margin-bottom: 0.5rem;">Please Login to View Your Complaints</h3>
-              <p style="color: #6b7280; margin-bottom: 1.5rem;">You need to be logged in to view and track your complaints.</p>
-              <div style="display: flex; gap: 1rem; justify-content: center;">
-                <button onclick="showSection('login')" style="background-color: var(--primary-color);">
-                  <i class="fas fa-sign-in-alt"></i> Login
-                </button>
-                <button onclick="showSection('signup')" style="background-color: var(--secondary-color);">
-                  <i class="fas fa-user-plus"></i> Create Account
-                </button>
-              </div>
-            </div>
-          `;
-        } else {
-          renderComplaints();
-        }
-      } else {
-        document.getElementById(id).style.display = 'block';
-      }
-
-      if (id === 'suggestions') {
-        renderSuggestions();
-      }
-
-      // Update URL for admin routes
-      if (id === 'admin-login' || id === 'admin-dashboard') {
-        window.history.pushState({}, '', '/admin');
-      }
-    }
-
-    // Add a direct admin access function
-    function accessAdminPortal() {
-      window.location.href = window.location.origin + '/admin';
-    }
-
-    // Update suggestion form submission to use Firestore
-    suggestionForm.addEventListener("submit", async function(e) {
-      e.preventDefault();
-      
-      if (!currentUserEmail) {
-        showNotification('warning', 'Login Required', 'Please login to submit a suggestion');
-        showSection('login');
-        return;
-      }
-
-      try {
-        const suggestionData = {
-          title: document.getElementById("suggestionTitle").value,
-          category: document.getElementById("suggestionCategory").value,
-          description: document.getElementById("suggestionDescription").value,
-          userId: auth.currentUser.uid,
-          name: currentUserName || currentUserEmail,
-          date: new Date().toISOString(),
-          votes: 0,
-          voters: [],
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
-        await db.collection('suggestions').add(suggestionData);
-        suggestionForm.reset();
-        renderSuggestions();
-        showNotification('success', 'Suggestion Submitted', 'Your suggestion has been successfully submitted. Thank you for contributing to our community!');
-      } catch (error) {
-        console.error('Error submitting suggestion:', error);
-        showNotification('error', 'Submission Failed', error.message);
-      }
-    });
-
-    // Update renderSuggestions function to use Firestore
-    async function renderSuggestions() {
-      const container = document.getElementById("suggestions-list");
-      container.innerHTML = '<h3>Recent Suggestions</h3>';
-      
-      try {
-        const snapshot = await db.collection('suggestions')
-          .orderBy('votes', 'desc')
-          .orderBy('createdAt', 'desc')
-          .get();
-        
-        if (snapshot.empty) {
-          container.innerHTML += '<p>No suggestions yet. Be the first to suggest an improvement!</p>';
-          return;
-        }
-
-        snapshot.forEach((doc) => {
-          const suggestion = { id: doc.id, ...doc.data() };
-          const card = document.createElement("div");
-          card.className = "complaint-card";
-          card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: start;">
-              <div>
-                <h4>${suggestion.title}</h4>
-                <strong><i class="fas fa-tag"></i> Category:</strong> ${suggestion.category}<br>
-                <strong><i class="fas fa-user"></i> Suggested by:</strong> ${suggestion.name}<br>
-                <strong><i class="fas fa-calendar"></i> Date:</strong> ${new Date(suggestion.date).toLocaleDateString()}<br>
-                <p>${suggestion.description}</p>
-              </div>
-              <div>
-                <button onclick="voteSuggestion('${suggestion.id}')" class="vote-button" ${suggestion.voters.includes(auth.currentUser?.uid) ? 'disabled' : ''}>
-                  <i class="fas fa-thumbs-up"></i> ${suggestion.votes} Votes
-                </button>
-              </div>
-            </div>
-          `;
-          container.appendChild(card);
-        });
-      } catch (error) {
-        console.error('Error loading suggestions:', error);
-        showNotification('error', 'Loading Failed', 'Failed to load suggestions. Please try again.');
-      }
-    }
-
-    // Update voteSuggestion function to use Firestore
-    async function voteSuggestion(id) {
-      if (!currentUserEmail) {
-        showNotification('warning', 'Login Required', 'Please login to vote for suggestions');
-        showSection('login');
-        return;
-      }
-
-      try {
-        const suggestionRef = db.collection('suggestions').doc(id);
-        const doc = await suggestionRef.get();
-        
-        if (!doc.exists) {
-          showNotification('error', 'Not Found', 'Suggestion not found');
-          return;
-        }
-
-        const suggestion = doc.data();
-        if (suggestion.voters.includes(auth.currentUser.uid)) {
-          showNotification('warning', 'Already Voted', 'You have already voted for this suggestion');
-          return;
-        }
-
-        await suggestionRef.update({
-          votes: firebase.firestore.FieldValue.increment(1),
-          voters: firebase.firestore.FieldValue.arrayUnion(auth.currentUser.uid)
-        });
-
-        renderSuggestions();
-        showNotification('success', 'Vote Recorded', 'Your vote has been recorded. Thank you for participating!');
-      } catch (error) {
-        console.error('Error voting for suggestion:', error);
-        showNotification('error', 'Vote Failed', error.message);
-      }
-    }
-
-    // Initialize the app
-    updateNavigation();
-    showSection('home');
-
-    // Add file upload preview functionality
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-      const files = e.target.files;
-      const fileUpload = document.querySelector('.file-upload');
-      
-      if (files.length > 0) {
-        let previewHtml = '<div style="margin-top: 1rem;">';
-        
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-              const img = document.createElement('img');
-              img.src = e.target.result;
-              img.style.width = '100px';
-              img.style.height = '100px';
-              img.style.objectFit = 'cover';
-              img.style.borderRadius = '0.5rem';
-              img.style.marginRight = '0.5rem';
-              document.querySelector('.file-preview').appendChild(img);
-            };
-            reader.readAsDataURL(file);
-          } else {
-            previewHtml += `
-              <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: #f3f4f6; border-radius: 0.5rem; margin-right: 0.5rem;">
-                <i class="fas fa-file"></i> ${file.name}
-              </div>
-            `;
-          }
-        }
-        
-        previewHtml += '</div>';
-        
-        if (!fileUpload.querySelector('.file-preview')) {
-          const previewDiv = document.createElement('div');
-          previewDiv.className = 'file-preview';
-          fileUpload.appendChild(previewDiv);
-        }
-        
-        fileUpload.querySelector('.file-preview').innerHTML = previewHtml;
-      } else {
-        const previewDiv = fileUpload.querySelector('.file-preview');
-        if (previewDiv) {
-          previewDiv.remove();
-        }
-      }
-    });
   </script>
 </body>
 </html>
