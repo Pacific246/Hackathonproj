@@ -137,3 +137,5 @@ For support, email support@urbanresolve.com or create an issue in the repository
 - Firebase for backend services
 - Font Awesome for icons
 - All contributors and users of Urban Resolve 
+
+You can see the live demo of the website here:https://hackathonproj-kappa.vercel.app/
